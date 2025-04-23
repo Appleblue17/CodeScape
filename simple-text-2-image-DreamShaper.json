@@ -1,0 +1,457 @@
+{
+  "last_node_id": 77,
+  "last_link_id": 124,
+  "nodes": [
+    {
+      "id": 28,
+      "type": "VAELoader",
+      "pos": {
+        "0": 1485.0467529296875,
+        "1": 294.14727783203125
+      },
+      "size": {
+        "0": 315,
+        "1": 58
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            33
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae-ft-mse-840000-ema-pruned.safetensors"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "CLIPTextEncode",
+      "pos": {
+        "0": 1055.0467529296875,
+        "1": 454.14727783203125
+      },
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            25
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "mountain landscape, digital painting, masterpiece"
+      ]
+    },
+    {
+      "id": 25,
+      "type": "CLIPTextEncode",
+      "pos": {
+        "0": 1055.0467529296875,
+        "1": 714.1472778320312
+      },
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            26
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "ugly, deformed"
+      ]
+    },
+    {
+      "id": 22,
+      "type": "KSampler",
+      "pos": {
+        "0": 1505.0467529296875,
+        "1": 484.14727783203125
+      },
+      "size": {
+        "0": 315,
+        "1": 262
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 24,
+          "slot_index": 0
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 25,
+          "slot_index": 1
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 26,
+          "slot_index": 2
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 29,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            30
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        1026628300044257,
+        "randomize",
+        25,
+        7,
+        "dpmpp_2m",
+        "karras",
+        1
+      ]
+    },
+    {
+      "id": 26,
+      "type": "EmptyLatentImage",
+      "pos": {
+        "0": 1095.0467529296875,
+        "1": 284.14727783203125
+      },
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            29
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        768,
+        1
+      ]
+    },
+    {
+      "id": 27,
+      "type": "VAEDecode",
+      "pos": {
+        "0": 1865.0467529296875,
+        "1": 384.14727783203125
+      },
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 30
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 33,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            36
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 31,
+      "type": "SaveImage",
+      "pos": {
+        "0": 1845.0467529296875,
+        "1": 564.1472778320312
+      },
+      "size": {
+        "0": 333.5714111328125,
+        "1": 457.857177734375
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 36
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 23,
+      "type": "CheckpointLoaderSimple",
+      "pos": {
+        "0": 695.0468139648438,
+        "1": 534.1472778320312
+      },
+      "size": {
+        "0": 315,
+        "1": 98
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            24
+          ],
+          "shape": 3
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            27,
+            28
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [],
+          "slot_index": 2,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "dreamshaper_8.safetensors"
+      ]
+    },
+    {
+      "id": 75,
+      "type": "Note",
+      "pos": {
+        "0": 70,
+        "1": 476
+      },
+      "size": {
+        "0": 531.1061401367188,
+        "1": 104.98204803466797
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "To activate a Group, right-click in the blue area and select \"Set group Nodes to Always\"\n\nTo bypass a Group , right click in the blue area and select \"Bypass Group Nodes\""
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      24,
+      23,
+      0,
+      22,
+      0,
+      "MODEL"
+    ],
+    [
+      25,
+      24,
+      0,
+      22,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      26,
+      25,
+      0,
+      22,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      27,
+      23,
+      1,
+      24,
+      0,
+      "CLIP"
+    ],
+    [
+      28,
+      23,
+      1,
+      25,
+      0,
+      "CLIP"
+    ],
+    [
+      29,
+      26,
+      0,
+      22,
+      3,
+      "LATENT"
+    ],
+    [
+      30,
+      22,
+      0,
+      27,
+      0,
+      "LATENT"
+    ],
+    [
+      33,
+      28,
+      0,
+      27,
+      1,
+      "VAE"
+    ],
+    [
+      36,
+      27,
+      0,
+      31,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "Text to Image",
+      "bounding": [
+        664,
+        105,
+        1556,
+        967
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.826446280991736,
+      "offset": [
+        252.21429146080447,
+        234.82437137826642
+      ]
+    }
+  },
+  "version": 0.4
+}
