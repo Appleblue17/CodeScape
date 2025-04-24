@@ -1,6 +1,10 @@
 import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { medianFilter, randomShuffle } from "./util.js";
 
+let showTrees = true;
+let terrain = "plain";
+let buttons = [];
+
 export let font;
 
 const spriteList = [
@@ -97,9 +101,135 @@ const pillarFrontFillingImg = ["", "", "", "", "       CCCCCCC", "       CCCCCCC
 window.setup = function setup() {
   const ASCIIWidth = 600,
     ASCIIHeight = 240;
-  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
+  // Set canvas to have much more space for the giant buttons
+  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16 + 280); // Significantly increased from +110
+
+  // Create UI controls
+  createUIControls();
+
+  drawScene();
+};
+
+function createUIControls() {
+  // Style constants for buttons - tripled from current size
+  const btnHeight = 180; // Tripled from 60
+  const btnWidth = 540; // Tripled from 180
+  const btnMargin = 60; // Tripled from 20
+  const btnY = 70; // Adjusted for much larger buttons
+  const fontSize = 72; // Tripled from 24
+  let xPos = btnMargin;
+
+  // Arrange buttons in two rows for better fit
+  const firstRowButtons = ["Hide Trees", "Show Trees", "Plain"];
+  const secondRowButtons = ["Hill", "Mountain", "Debug"];
+
+  // Button styling function
+  const styleButton = (btn, isActive = false) => {
+    btn.size(btnWidth, btnHeight);
+    btn.style("font-size", fontSize + "px");
+    btn.style("font-weight", "bold");
+    btn.style("border-radius", "36px"); // Tripled from 12px
+    btn.style("border", "9px solid #fff"); // Tripled from 3px
+    btn.style("cursor", "pointer");
+
+    if (isActive) {
+      btn.style("background-color", "#4CAF50");
+      btn.style("color", "white");
+    } else {
+      btn.style("background-color", "#333");
+      btn.style("color", "#ddd");
+    }
+
+    // Add hover effect
+    btn.mouseOver(() => {
+      if (!isActive) {
+        btn.style("background-color", "#444");
+        btn.style("color", "#fff");
+      }
+    });
+
+    btn.mouseOut(() => {
+      if (!isActive) {
+        btn.style("background-color", "#333");
+        btn.style("color", "#ddd");
+      }
+    });
+  };
+
+  // Update all buttons to reflect current state
+  const updateButtonStyles = () => {
+    buttons.forEach((btn) => {
+      if (btn.elt.innerText === "Hide Trees" || btn.elt.innerText === "Show Trees") {
+        styleButton(btn, true);
+      } else if (btn.elt.innerText.toLowerCase() === capitalize(terrain)) {
+        styleButton(btn, true);
+      } else {
+        styleButton(btn, false);
+      }
+    });
+  };
+
+  // Toggle trees button - positioned in first row
+  let toggleTreesBtn = createButton(showTrees ? "Hide Trees" : "Show Trees");
+  toggleTreesBtn.position(xPos, btnY);
+  buttons.push(toggleTreesBtn);
+
+  toggleTreesBtn.mousePressed(() => {
+    showTrees = !showTrees;
+    toggleTreesBtn.html(showTrees ? "Hide Trees" : "Show Trees");
+    updateButtonStyles();
+    drawScene();
+  });
+
+  // Reset x position for second row
+  xPos = btnMargin;
+
+  // Terrain buttons - position in second row
+  const terrainTypes = ["plain", "hill", "mountain", "debug"];
+
+  terrainTypes.forEach((type, index) => {
+    let btn = createButton(capitalize(type));
+
+    // Position in proper row
+    if (index < 2) {
+      btn.position(xPos + (btnWidth + btnMargin) * (index + 1), btnY); // First row, after Trees button
+    } else {
+      btn.position(xPos + (btnWidth + btnMargin) * (index - 2), btnY + btnHeight + btnMargin); // Second row
+    }
+
+    buttons.push(btn);
+
+    btn.mousePressed(() => {
+      terrain = type;
+      updateButtonStyles();
+      drawScene();
+    });
+  });
+
+  // Initial styling
+  updateButtonStyles();
+}
+
+function capitalize(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function drawScene() {
+  // Clear everything below the buttons
   background(0);
 
+  // Draw a separator line
+  stroke(100);
+  strokeWeight(9); // Tripled from 3
+  line(0, 280, width, 280); // Adjusted for two rows of buttons
+  noStroke();
+
+  // Push matrix to offset the ASCII art below the buttons
+  push();
+  translate(0, 280); // Adjusted for two rows of buttons
+
+  const ASCIIWidth = 600,
+    ASCIIHeight = 240;
   const ASCIICanvas = Array.from({ length: ASCIIHeight }, () => Array(ASCIIWidth).fill(" "));
 
   const ymax = ceil(ASCIIHeight / 3) + 5;
@@ -122,33 +252,39 @@ window.setup = function setup() {
   platform = medianFilter(platform, 10);
 
   // debug
-  // platform[3][0 - xmin] = 1;
-  // platform[3][1 - xmin] = 2;
-  // platform[3][2 - xmin] = 1;
-  // platform[4][0 - xmin] = 1;
-  // platform[4][1 - xmin] = 2;
-  // platform[4][2 - xmin] = 1;
-  // platform[5][0 - xmin] = 1;
-  // platform[5][1 - xmin] = 2;
-  // platform[5][2 - xmin] = 1;
+  if (terrain === "debug") {
+    platform[3][0 - xmin] = 1;
+    platform[3][1 - xmin] = 2;
+    platform[3][2 - xmin] = 1;
+    platform[4][0 - xmin] = 1;
+    platform[4][1 - xmin] = 2;
+    platform[4][2 - xmin] = 1;
+    platform[5][0 - xmin] = 1;
+    platform[5][1 - xmin] = 2;
+    platform[5][2 - xmin] = 1;
+  }
 
   // hills
-  // for (let y = 0; y < mapHeight; y++) {
-  //   for (let x = 0; x < mapWidth; x++) {
-  //     let e = noise(x / 10 + 5, y / 10 + 5) * 30;
-  //     if (e >= 15) platform[y][x] += ceil(e - 15);
-  //   }
-  // }
-  // platform = medianFilter(platform, 8);
+  if (terrain === "hill") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise(x / 10 + 5, y / 10 + 5) * 30;
+        if (e >= 15) platform[y][x] += ceil(e - 15);
+      }
+    }
+    platform = medianFilter(platform, 8);
+  }
 
   //mountain
-  // for (let y = 0; y < mapHeight; y++) {
-  //   for (let x = 0; x < mapWidth; x++) {
-  //     let e = noise(x / 40 + 5, y / 40 + 5) * 60;
-  //     if (e >= 30) platform[y][x] += ceil(e - 30);
-  //   }
-  // }
-  // platform = medianFilter(platform, 5);
+  if (terrain === "mountain") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise(x / 40 + 5, y / 40 + 5) * 60;
+        if (e >= 30) platform[y][x] += ceil(e - 30);
+      }
+    }
+    platform = medianFilter(platform, 5);
+  }
 
   const getHeight = (x, y) => {
     x -= xmin;
@@ -206,22 +342,24 @@ window.setup = function setup() {
   };
 
   let count = 0;
-  for (let t = 0; t < gridPermutation.length; t++) {
-    const { x, y } = gridPermutation[t];
-    if (occupied[y][x - xmin]) continue;
-    const density = noise(x / 50, y / 50) * 0.3;
-    if (random() < density) {
-      let attempt = 0;
-      while (attempt < 10) {
-        const sprite = spriteRollList[spriteRollIndex];
-        spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
-        if (sprite.dist <= minDist[y][x - xmin]) {
-          sprites[y][x - xmin] = sprite;
-          count++;
-          setOccupy(x, y, round(sprite.dist * 0.5));
-          break;
+  if (showTrees) {
+    for (let t = 0; t < gridPermutation.length; t++) {
+      const { x, y } = gridPermutation[t];
+      if (occupied[y][x - xmin]) continue;
+      const density = noise(x / 50, y / 50) * 0.3;
+      if (random() < density) {
+        let attempt = 0;
+        while (attempt < 10) {
+          const sprite = spriteRollList[spriteRollIndex];
+          spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
+          if (sprite.dist <= minDist[y][x - xmin]) {
+            sprites[y][x - xmin] = sprite;
+            count++;
+            setOccupy(x, y, round(sprite.dist * 0.5));
+            break;
+          }
+          attempt++;
         }
-        attempt++;
       }
     }
   }
@@ -249,7 +387,6 @@ window.setup = function setup() {
     }
   };
 
-  let fl;
   for (let y = 0; y <= ymax; y++) {
     const L = floor((-6 * y) / 7) - 1,
       R = ceil((ASCIIWidth - 6 * y) / 7);
@@ -326,23 +463,10 @@ window.setup = function setup() {
       text(ASCIIChar, x * 8 + 4, y * 16 + 8);
     }
   }
+  // End of translate
+  pop();
+}
 
-  // This is an example of how to use the getASCIISprite function
-  // const res = getASCIISprite(treeImg[0], 256, 400, 1.3);
-
-  // createCanvas(256, 400);
-  // background(0);
-  // for (let y = 0; y < res.length; y++) {
-  //   for (let x = 0; x < res[y].length; x++) {
-  //     let ASCIIChar = res[y][x];
-
-  //     textAlign(CENTER, CENTER);
-  //     textSize(16);
-  //     textFont(font);
-  //     fill(255);
-  //     text(ASCIIChar, x * 8 + 4, y * 16 + 8);
-  //   }
-  // }
-
-  noLoop();
+window.draw = function draw() {
+  // Empty draw function, scene is redrawn on button clicks
 };
