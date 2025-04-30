@@ -1,11 +1,12 @@
 import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
-import { medianFilter, randomShuffle } from "./util.js";
+import { capitalize, medianFilter, randomShuffle } from "./util.js";
 
 let showTrees = true;
 let terrain = "plain";
 let buttons = [];
 
 export let font;
+let socket;
 
 const spriteList = [
   {
@@ -99,6 +100,8 @@ const pillarLeftFillingImg = ["", "", " BB", " BBBB", "   BBBB"];
 const pillarFrontFillingImg = ["", "", "", "", "       CCCCCCC", "       CCCCCCC"];
 
 window.setup = function setup() {
+  socket = new WebSocket("ws://localhost:8080");
+
   const ASCIIWidth = 600,
     ASCIIHeight = 240;
   // Set canvas to have much more space for the giant buttons
@@ -107,7 +110,10 @@ window.setup = function setup() {
   // Create UI controls
   createUIControls();
 
-  drawScene();
+  socket.onopen = function () {
+    console.log("WebSocket is open now.");
+    drawScene();
+  };
 };
 
 function createUIControls() {
@@ -118,10 +124,6 @@ function createUIControls() {
   const btnY = 70; // Adjusted for much larger buttons
   const fontSize = 72; // Tripled from 24
   let xPos = btnMargin;
-
-  // Arrange buttons in two rows for better fit
-  const firstRowButtons = ["Hide Trees", "Show Trees", "Plain"];
-  const secondRowButtons = ["Hill", "Mountain", "Debug"];
 
   // Button styling function
   const styleButton = (btn, isActive = false) => {
@@ -185,17 +187,13 @@ function createUIControls() {
   xPos = btnMargin;
 
   // Terrain buttons - position in second row
-  const terrainTypes = ["plain", "hill", "mountain", "debug"];
+  const terrainTypes = ["plain", "hill", "mountain"];
 
   terrainTypes.forEach((type, index) => {
     let btn = createButton(capitalize(type));
 
     // Position in proper row
-    if (index < 2) {
-      btn.position(xPos + (btnWidth + btnMargin) * (index + 1), btnY); // First row, after Trees button
-    } else {
-      btn.position(xPos + (btnWidth + btnMargin) * (index - 2), btnY + btnHeight + btnMargin); // Second row
-    }
+    btn.position(xPos + (btnWidth + btnMargin) * (index + 1), btnY); // First row, after Trees button
 
     buttons.push(btn);
 
@@ -208,10 +206,6 @@ function createUIControls() {
 
   // Initial styling
   updateButtonStyles();
-}
-
-function capitalize(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function drawScene() {
@@ -252,17 +246,17 @@ function drawScene() {
   platform = medianFilter(platform, 10);
 
   // debug
-  if (terrain === "debug") {
-    platform[3][0 - xmin] = 1;
-    platform[3][1 - xmin] = 2;
-    platform[3][2 - xmin] = 1;
-    platform[4][0 - xmin] = 1;
-    platform[4][1 - xmin] = 2;
-    platform[4][2 - xmin] = 1;
-    platform[5][0 - xmin] = 1;
-    platform[5][1 - xmin] = 2;
-    platform[5][2 - xmin] = 1;
-  }
+  // if (terrain === "debug") {
+  //   platform[3][0 - xmin] = 1;
+  //   platform[3][1 - xmin] = 2;
+  //   platform[3][2 - xmin] = 1;
+  //   platform[4][0 - xmin] = 1;
+  //   platform[4][1 - xmin] = 2;
+  //   platform[4][2 - xmin] = 1;
+  //   platform[5][0 - xmin] = 1;
+  //   platform[5][1 - xmin] = 2;
+  //   platform[5][2 - xmin] = 1;
+  // }
 
   // hills
   if (terrain === "hill") {
@@ -341,7 +335,6 @@ function drawScene() {
     }
   };
 
-  let count = 0;
   if (showTrees) {
     for (let t = 0; t < gridPermutation.length; t++) {
       const { x, y } = gridPermutation[t];
@@ -354,7 +347,6 @@ function drawScene() {
           spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
           if (sprite.dist <= minDist[y][x - xmin]) {
             sprites[y][x - xmin] = sprite;
-            count++;
             setOccupy(x, y, round(sprite.dist * 0.5));
             break;
           }
@@ -450,19 +442,24 @@ function drawScene() {
   //   }
   // }
 
-  textAlign(CENTER, CENTER);
-  textSize(16);
-  textFont(font);
-  fill(255);
   for (let y = 0; y < ASCIICanvas.length; y++) {
     for (let x = 0; x < ASCIICanvas[y].length; x++) {
-      let ASCIIChar = ASCIICanvas[y][x];
-      if (ASCIIChar === "A") ASCIIChar = " ";
-      else if (ASCIIChar === "B") ASCIIChar = "#";
-      else if (ASCIIChar === "C") ASCIIChar = ".";
-      text(ASCIIChar, x * 8 + 4, y * 16 + 8);
+      if (ASCIICanvas[y][x] === "A") ASCIICanvas[y][x] = " ";
+      else if (ASCIICanvas[y][x] === "B") ASCIICanvas[y][x] = "#";
+      else if (ASCIICanvas[y][x] === "C") ASCIICanvas[y][x] = ".";
     }
   }
+  socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
+
+  // textAlign(CENTER, CENTER);
+  // textSize(16);
+  // textFont(font);
+  // fill(255);
+  // for (let y = 0; y < ASCIICanvas.length; y++) {
+  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
+  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
+  //   }
+  // }
   // End of translate
   pop();
 }
