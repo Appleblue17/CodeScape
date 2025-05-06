@@ -59,6 +59,23 @@ window.setup = function setup() {
     console.log("WebSocket is open now.");
   };
   drawScene();
+
+  noiseSeed(0);
+};
+
+/**
+ * Handle keyboard input to control camera movement
+ * - Left arrow key: Move camera left
+ * - Right arrow key: Move camera right
+ */
+window.keyPressed = function keyPressed() {
+  if (keyCode === LEFT_ARROW) {
+    cameraX -= 10; // Move camera left
+    drawScene();
+  } else if (keyCode === RIGHT_ARROW) {
+    cameraX += 10; // Move camera right
+    drawScene();
+  }
 };
 
 // Canvas dimension constants
@@ -67,34 +84,41 @@ const ASCIIWidth = 600,
 let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 
+let cameraX = 100; // Camera position in the X direction
+const spritePages = []; // Store generated sprite in previous pages
+let spritePageStart = 0,
+  spritePageEnd = -1; // Start and end indices for sprite pages
+
 /**
  * Main rendering function - draws the ASCII landscape scene
  */
 function drawScene() {
+  noiseSeed(0);
+  randomSeed(0);
   background(0);
 
-  ymax = ceil(ASCIIHeight / 3) + 5;
+  ymax = ceil(ASCIIHeight / 3) + 10;
   xmin = floor((-6 * ymax) / 7) - 1;
   xmax = ceil(ASCIIWidth / 7);
   mapWidth = xmax - xmin + 1;
   mapHeight = ymax + 1;
 
   let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
-  let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
+  generateTerrain(terrain, cameraX);
 
-  generateTerrain(terrain);
-  generateSpritePosition(terrain, sprites);
+  const sprites = getSpritePosition(cameraX);
+
   const ASCIICanvas = renderScreen(terrain, sprites);
 
-  textAlign(CENTER, CENTER);
-  textSize(16);
-  textFont(font);
-  fill(255);
-  for (let y = 0; y < ASCIICanvas.length; y++) {
-    for (let x = 0; x < ASCIICanvas[y].length; x++) {
-      text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-    }
-  }
+  // textAlign(CENTER, CENTER);
+  // textSize(16);
+  // textFont(font);
+  // fill(255);
+  // for (let y = 0; y < ASCIICanvas.length; y++) {
+  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
+  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
+  //   }
+  // }
 
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
@@ -113,10 +137,10 @@ let terrainType = "mountain";
  *
  * @param {Array<Array<number>>} terrain - 2D array to store elevation values
  */
-function generateTerrain(terrain) {
+function generateTerrain(terrain, offset) {
   for (let y = 0; y < mapHeight; y++) {
     for (let x = 0; x < mapWidth; x++) {
-      let e = noise(x / 50, y / 50) * 10;
+      let e = noise((x + offset) / 50, y / 50) * 10;
       terrain[y][x] = ceil(e);
     }
   }
@@ -126,7 +150,7 @@ function generateTerrain(terrain) {
   if (terrainType === "hill") {
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
-        let e = noise(x / 10 + 5, y / 10 + 5) * 30;
+        let e = noise((x + offset) / 10 + 5, y / 10 + 5) * 30;
         if (e >= 15) terrain[y][x] += ceil(e - 15);
       }
     }
@@ -138,7 +162,7 @@ function generateTerrain(terrain) {
     console.log("OK");
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
-        let e = noise(x / 40 + 5, y / 40 + 5) * 60;
+        let e = noise((x + offset) / 40 + 5, y / 40 + 5) * 60;
         if (e >= 30) terrain[y][x] += ceil(e - 30);
       }
     }
@@ -229,9 +253,7 @@ function generateSpritePosition(terrain, sprites) {
 
   const gridPermutation = [];
   for (let y = 0; y <= ymax; y++) {
-    const L = floor((-6 * y) / 7) - 1,
-      R = ceil((ASCIIWidth - 6 * y) / 7);
-    for (let x = R; x >= L; x--) {
+    for (let x = xmax; x >= xmin; x--) {
       gridPermutation.push({ x, y });
     }
   }
@@ -246,20 +268,16 @@ function generateSpritePosition(terrain, sprites) {
     }
   }
   for (let y = 0; y <= ymax; y++) {
-    const L = floor((-6 * y) / 7) - 1,
-      R = ceil((ASCIIWidth - 6 * y) / 7);
     let current = 0;
-    for (let x = L; x <= R; x++) {
+    for (let x = xmin; x <= xmax; x++) {
       if (getHeight(x, y) === getHeight(x - 1, y)) current++;
       else current = 0;
       minDist[y][x - xmin] = min(minDist[y][x - xmin], current);
     }
   }
   for (let y = 0; y <= ymax; y++) {
-    const L = floor((-6 * y) / 7) - 1,
-      R = ceil((ASCIIWidth - 6 * y) / 7);
     let current = 0;
-    for (let x = R; x >= L; x--) {
+    for (let x = xmax; x >= xmin; x--) {
       if (getHeight(x, y) === getHeight(x + 1, y)) current++;
       else current = 0;
       minDist[y][x - xmin] = min(minDist[y][x - xmin], current);
@@ -294,6 +312,53 @@ function generateSpritePosition(terrain, sprites) {
       }
     }
   }
+}
+
+function extendSpritePosition(direction) {
+  console.log("extendSpritePosition", direction);
+  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
+  if (direction === 0) {
+    // Extend to the left
+    spritePages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
+    generateTerrain(terrain, (spritePageStart - 1) * mapWidth);
+    generateSpritePosition(terrain, spritePages[0]);
+    spritePageStart--;
+  } else {
+    // Extend to the right
+    spritePages.push(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
+    generateTerrain(terrain, (spritePageEnd + 1) * mapWidth);
+    generateSpritePosition(terrain, spritePages[spritePages.length - 1]);
+    spritePageEnd++;
+  }
+}
+
+function getSpritePosition(offset) {
+  while (offset < spritePageStart * mapWidth) {
+    extendSpritePosition(0);
+  }
+  while (offset >= spritePageEnd * mapWidth) {
+    extendSpritePosition(1);
+  }
+  let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
+  // calculate which page the offset is in
+  let page = Math.floor((offset - spritePageStart * mapWidth) / mapWidth);
+  let pageOffset = offset - (spritePageStart + page) * mapWidth;
+
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = pageOffset; x < mapWidth; x++) {
+      sprites[y][x - pageOffset] = spritePages[page][y][x];
+    }
+  }
+
+  // Fill the right half of the sprite with the next page
+  console.log(mapWidth - pageOffset);
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < pageOffset; x++) {
+      sprites[y][x + mapWidth - pageOffset] = spritePages[page + 1][y][x];
+      // if(console.log(spritePages[page + 1][y][x]);
+    }
+  }
+  return sprites;
 }
 
 // ASCII art templates for terrain rendering
@@ -350,9 +415,7 @@ function renderScreen(terrain, sprites) {
   };
 
   for (let y = 0; y <= ymax; y++) {
-    const L = floor((-6 * y) / 7) - 1,
-      R = ceil((ASCIIWidth - 6 * y) / 7);
-    for (let x = R; x >= L; x--) {
+    for (let x = xmax; x >= xmin; x--) {
       const height = getHeight(x, y);
       const i = y * 3 - height * 2,
         j = x * 7 + y * 6;
@@ -387,7 +450,7 @@ function renderScreen(terrain, sprites) {
       }
     }
 
-    for (let x = R; x >= L; x--) {
+    for (let x = xmax; x >= xmin; x--) {
       const height = getHeight(x, y);
       const i = y * 3 - height * 2,
         j = x * 7 + y * 6;

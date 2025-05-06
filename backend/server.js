@@ -13,6 +13,8 @@ wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(message) {
     console.clear();
     displayContent = message.toString('utf-8');
+    // Display ASCII art immediately when a message is received
+    displayAsciiArt();
   });
 });
 
@@ -30,9 +32,3 @@ function displayAsciiArt() {
   // Output the ASCII art
   process.stdout.write(displayContent);
 }
-
-// Refresh rate in milliseconds (e.g., 500ms for half a second)
-const refreshRate = 2000;
-
-// Set interval to refresh ASCII art
-setInterval(displayAsciiArt, refreshRate);
