@@ -1,13 +1,159 @@
+/**
+ * Main rendering engine for the CodeScape ASCII landscape generator
+ *
+ * This file handles:
+ * - Canvas setup and WebSocket connectivity
+ * - Terrain generation with different landscape types
+ * - Sprite placement and rendering
+ * - ASCII character-based rendering of the 3D landscape
+ */
+
 import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { capitalize, medianFilter, randomShuffle } from "./util.js";
 
-let showTrees = true;
-let terrain = "plain";
-let buttons = [];
+// Global variables
+export let font; // Font used for rendering ASCII characters
+let socket; // WebSocket connection for sending rendered ASCII art
 
-export let font;
-let socket;
+/**
+ * Preload assets before setup
+ * - Loads custom font
+ * - Loads sprite images and generates edge/fill representations
+ * - Prepares weighted sprite distribution for random selection
+ */
+window.preload = function preload() {
+  font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
+  pixelDensity(1);
+  for (let sprite of spriteList) {
+    sprite.loadedImg = loadImage(
+      sprite.img,
+      // Success callback - called when the image is fully loaded
+      () => {
+        console.log("loaded: " + sprite.name);
+        // Generate edge and fill images once the image is fully loaded
+        sprite.edgeImg = generateSpriteEdge(sprite.loadedImg, sprite.width, sprite.height);
+        sprite.fillImg = generateSpriteFilling(sprite.loadedImg, sprite.width, sprite.height);
 
+        for (let i = 0; i < sprite.weight * 5; i++) {
+          spriteRollList.push(sprite);
+        }
+      },
+      () => {
+        console.log("error loading: " + sprite.name);
+      }
+    );
+  }
+  randomShuffle(spriteRollList);
+};
+
+/**
+ * Setup function - initializes the canvas and WebSocket connection
+ */
+window.setup = function setup() {
+  socket = new WebSocket("ws://localhost:8080");
+
+  // Set canvas to have much more space for the giant buttons
+  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
+
+  socket.onopen = function () {
+    console.log("WebSocket is open now.");
+  };
+  drawScene();
+};
+
+// Canvas dimension constants
+const ASCIIWidth = 600,
+  ASCIIHeight = 180;
+let ymax, xmin, xmax; // Coordinate boundaries for the terrain
+let mapWidth, mapHeight; // Dimensions of the terrain map
+
+/**
+ * Main rendering function - draws the ASCII landscape scene
+ */
+function drawScene() {
+  background(0);
+
+  ymax = ceil(ASCIIHeight / 3) + 5;
+  xmin = floor((-6 * ymax) / 7) - 1;
+  xmax = ceil(ASCIIWidth / 7);
+  mapWidth = xmax - xmin + 1;
+  mapHeight = ymax + 1;
+
+  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
+  let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
+
+  generateTerrain(terrain);
+  generateSpritePosition(terrain, sprites);
+  const ASCIICanvas = renderScreen(terrain, sprites);
+
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  textFont(font);
+  fill(255);
+  for (let y = 0; y < ASCIICanvas.length; y++) {
+    for (let x = 0; x < ASCIICanvas[y].length; x++) {
+      text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
+    }
+  }
+
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
+  }
+}
+
+/**
+ * Current terrain type - controls landscape generation algorithm
+ * Options: "mountain", "hill", "debug"
+ */
+let terrainType = "mountain";
+
+/**
+ * Generates terrain height map based on the selected terrain type
+ * Uses Perlin noise to create natural-looking elevation patterns
+ *
+ * @param {Array<Array<number>>} terrain - 2D array to store elevation values
+ */
+function generateTerrain(terrain) {
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      let e = noise(x / 50, y / 50) * 10;
+      terrain[y][x] = ceil(e);
+    }
+  }
+  medianFilter(terrain, 10);
+
+  // hills
+  if (terrainType === "hill") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise(x / 10 + 5, y / 10 + 5) * 30;
+        if (e >= 15) terrain[y][x] += ceil(e - 15);
+      }
+    }
+    medianFilter(terrain, 8);
+  }
+
+  //mountain
+  if (terrainType === "mountain") {
+    console.log("OK");
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise(x / 40 + 5, y / 40 + 5) * 60;
+        if (e >= 30) terrain[y][x] += ceil(e - 30);
+      }
+    }
+    medianFilter(terrain, 5);
+  }
+}
+
+/**
+ * Sprite definitions with size, distribution and weighting parameters
+ * - name: Sprite identifier
+ * - img: Path to image asset
+ * - width/height: Dimensions in pixels
+ * - dist: Minimum spacing distance between sprites
+ * - weight: Relative probability of selection (higher = more common)
+ */
 const spriteList = [
   {
     name: "tree_small",
@@ -58,232 +204,27 @@ const spriteList = [
     weight: 2,
   },
 ];
-const spriteRollList = [];
-let spriteRollIndex = 0;
 
-window.preload = function preload() {
-  font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
-  pixelDensity(1);
-  for (let sprite of spriteList) {
-    sprite.loadedImg = loadImage(
-      sprite.img,
-      // Success callback - called when the image is fully loaded
-      () => {
-        console.log("loaded: " + sprite.name);
-        // Generate edge and fill images once the image is fully loaded
-        sprite.edgeImg = generateSpriteEdge(sprite.loadedImg, sprite.width, sprite.height);
-        sprite.fillImg = generateSpriteFilling(sprite.loadedImg, sprite.width, sprite.height);
+const spriteRollList = []; // Weighted list for random sprite selection
+let spriteRollIndex = 0; // Current position in the sprite selection list
 
-        for (let i = 0; i < sprite.weight * 5; i++) {
-          spriteRollList.push(sprite);
-        }
-      },
-      () => {
-        console.log("error loading: " + sprite.name);
-      }
-    );
-  }
-  randomShuffle(spriteRollList);
-  // console.log(spriteRollList)
-};
-
-const tileTopImg = ["_______"];
-const tileLeftImg = ["", "\\_", "  \\_", "    \\_"];
-const tileRightImg = ["", "       \\_", "         \\_", "           \\_"];
-const tileBottomImg = ["", "", "", "     _______"];
-const tileFillingImg = ["", "AAAAAAAAA", "  AAAAAAAAA", "     AAAAAAA"];
-
-const pillarLeftImg = ["", "|", "|"];
-const pillarMidImg = ["", "", "", "", "      |", "      |"];
-const pillarRightImg = ["", "", "", "", "             |", "             |"];
-const pillarLeftFillingImg = ["", "", " BB", " BBBB", "   BBBB"];
-const pillarFrontFillingImg = ["", "", "", "", "       CCCCCCC", "       CCCCCCC"];
-
-window.setup = function setup() {
-  socket = new WebSocket("ws://localhost:8080");
-
-  const ASCIIWidth = 600,
-    ASCIIHeight = 240;
-  // Set canvas to have much more space for the giant buttons
-  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16 + 280); // Significantly increased from +110
-
-  // Create UI controls
-  createUIControls();
-
-  socket.onopen = function () {
-    console.log("WebSocket is open now.");
-    drawScene();
-  };
-};
-
-function createUIControls() {
-  // Style constants for buttons - tripled from current size
-  const btnHeight = 180; // Tripled from 60
-  const btnWidth = 540; // Tripled from 180
-  const btnMargin = 60; // Tripled from 20
-  const btnY = 70; // Adjusted for much larger buttons
-  const fontSize = 72; // Tripled from 24
-  let xPos = btnMargin;
-
-  // Button styling function
-  const styleButton = (btn, isActive = false) => {
-    btn.size(btnWidth, btnHeight);
-    btn.style("font-size", fontSize + "px");
-    btn.style("font-weight", "bold");
-    btn.style("border-radius", "36px"); // Tripled from 12px
-    btn.style("border", "9px solid #fff"); // Tripled from 3px
-    btn.style("cursor", "pointer");
-
-    if (isActive) {
-      btn.style("background-color", "#4CAF50");
-      btn.style("color", "white");
-    } else {
-      btn.style("background-color", "#333");
-      btn.style("color", "#ddd");
-    }
-
-    // Add hover effect
-    btn.mouseOver(() => {
-      if (!isActive) {
-        btn.style("background-color", "#444");
-        btn.style("color", "#fff");
-      }
-    });
-
-    btn.mouseOut(() => {
-      if (!isActive) {
-        btn.style("background-color", "#333");
-        btn.style("color", "#ddd");
-      }
-    });
-  };
-
-  // Update all buttons to reflect current state
-  const updateButtonStyles = () => {
-    buttons.forEach((btn) => {
-      if (btn.elt.innerText === "Hide Trees" || btn.elt.innerText === "Show Trees") {
-        styleButton(btn, true);
-      } else if (btn.elt.innerText.toLowerCase() === capitalize(terrain)) {
-        styleButton(btn, true);
-      } else {
-        styleButton(btn, false);
-      }
-    });
-  };
-
-  // Toggle trees button - positioned in first row
-  let toggleTreesBtn = createButton(showTrees ? "Hide Trees" : "Show Trees");
-  toggleTreesBtn.position(xPos, btnY);
-  buttons.push(toggleTreesBtn);
-
-  toggleTreesBtn.mousePressed(() => {
-    showTrees = !showTrees;
-    toggleTreesBtn.html(showTrees ? "Hide Trees" : "Show Trees");
-    updateButtonStyles();
-    drawScene();
-  });
-
-  // Reset x position for second row
-  xPos = btnMargin;
-
-  // Terrain buttons - position in second row
-  const terrainTypes = ["plain", "hill", "mountain"];
-
-  terrainTypes.forEach((type, index) => {
-    let btn = createButton(capitalize(type));
-
-    // Position in proper row
-    btn.position(xPos + (btnWidth + btnMargin) * (index + 1), btnY); // First row, after Trees button
-
-    buttons.push(btn);
-
-    btn.mousePressed(() => {
-      terrain = type;
-      updateButtonStyles();
-      drawScene();
-    });
-  });
-
-  // Initial styling
-  updateButtonStyles();
-}
-
-function drawScene() {
-  // Clear everything below the buttons
-  background(0);
-
-  // Draw a separator line
-  stroke(100);
-  strokeWeight(9); // Tripled from 3
-  line(0, 280, width, 280); // Adjusted for two rows of buttons
-  noStroke();
-
-  // Push matrix to offset the ASCII art below the buttons
-  push();
-  translate(0, 280); // Adjusted for two rows of buttons
-
-  const ASCIIWidth = 600,
-    ASCIIHeight = 240;
-  const ASCIICanvas = Array.from({ length: ASCIIHeight }, () => Array(ASCIIWidth).fill(" "));
-
-  const ymax = ceil(ASCIIHeight / 3) + 5;
-  const xmin = floor((-6 * ymax) / 7) - 1,
-    xmax = ceil(ASCIIWidth / 7);
-  const mapWidth = xmax - xmin + 1,
-    mapHeight = ymax + 1;
-
-  let platform = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
+/**
+ * Places sprites throughout the terrain based on:
+ * - Height map values (placement on flat areas)
+ * - Noise-based density variation
+ * - Minimum distance constraints between sprites
+ *
+ * @param {Array<Array<number>>} terrain - The terrain height map
+ * @param {Array<Array<Object>>} sprites - 2D array to store placed sprites
+ */
+function generateSpritePosition(terrain, sprites) {
   let minDist = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
   let occupied = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
-  let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
-
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
-      let e = noise(x / 50, y / 50) * 10;
-      platform[y][x] = ceil(e);
-    }
-  }
-  platform = medianFilter(platform, 10);
-
-  // debug
-  // if (terrain === "debug") {
-  //   platform[3][0 - xmin] = 1;
-  //   platform[3][1 - xmin] = 2;
-  //   platform[3][2 - xmin] = 1;
-  //   platform[4][0 - xmin] = 1;
-  //   platform[4][1 - xmin] = 2;
-  //   platform[4][2 - xmin] = 1;
-  //   platform[5][0 - xmin] = 1;
-  //   platform[5][1 - xmin] = 2;
-  //   platform[5][2 - xmin] = 1;
-  // }
-
-  // hills
-  if (terrain === "hill") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise(x / 10 + 5, y / 10 + 5) * 30;
-        if (e >= 15) platform[y][x] += ceil(e - 15);
-      }
-    }
-    platform = medianFilter(platform, 8);
-  }
-
-  //mountain
-  if (terrain === "mountain") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise(x / 40 + 5, y / 40 + 5) * 60;
-        if (e >= 30) platform[y][x] += ceil(e - 30);
-      }
-    }
-    platform = medianFilter(platform, 5);
-  }
 
   const getHeight = (x, y) => {
     x -= xmin;
     if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return 0;
-    return platform[y][x];
+    return terrain[y][x];
   };
 
   const gridPermutation = [];
@@ -335,27 +276,56 @@ function drawScene() {
     }
   };
 
-  if (showTrees) {
-    for (let t = 0; t < gridPermutation.length; t++) {
-      const { x, y } = gridPermutation[t];
-      if (occupied[y][x - xmin]) continue;
-      const density = noise(x / 50, y / 50) * 0.3;
-      if (random() < density) {
-        let attempt = 0;
-        while (attempt < 10) {
-          const sprite = spriteRollList[spriteRollIndex];
-          spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
-          if (sprite.dist <= minDist[y][x - xmin]) {
-            sprites[y][x - xmin] = sprite;
-            setOccupy(x, y, round(sprite.dist * 0.5));
-            break;
-          }
-          attempt++;
+  for (let t = 0; t < gridPermutation.length; t++) {
+    const { x, y } = gridPermutation[t];
+    if (occupied[y][x - xmin]) continue;
+    const density = noise(x / 50, y / 50) * 0.3;
+    if (random() < density) {
+      let attempt = 0;
+      while (attempt < 10) {
+        const sprite = spriteRollList[spriteRollIndex];
+        spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
+        if (sprite.dist <= minDist[y][x - xmin]) {
+          sprites[y][x - xmin] = sprite;
+          setOccupy(x, y, round(sprite.dist * 0.5));
+          break;
         }
+        attempt++;
       }
     }
   }
+}
 
+// ASCII art templates for terrain rendering
+const tileTopImg = ["_______"];
+const tileLeftImg = ["", "\\_", "  \\_", "    \\_"];
+const tileRightImg = ["", "       \\_", "         \\_", "           \\_"];
+const tileBottomImg = ["", "", "", "     _______"];
+const tileFillingImg = ["", "AAAAAAAAA", "  AAAAAAAAA", "     AAAAAAA"];
+
+// ASCII art templates for vertical elements
+const pillarLeftImg = ["", "|", "|"];
+const pillarMidImg = ["", "", "", "", "      |", "      |"];
+const pillarRightImg = ["", "", "", "", "             |", "             |"];
+const pillarLeftFillingImg = ["", "", " BB", " BBBB", "   BBBB"];
+const pillarFrontFillingImg = ["", "", "", "", "       CCCCCCC", "       CCCCCCC"];
+
+/**
+ * Renders the final ASCII art representation of the terrain and sprites
+ * Uses isometric projection to create a 3D effect with ASCII characters
+ *
+ * @param {Array<Array<number>>} terrain - The terrain height map
+ * @param {Array<Array<Object>>} sprites - Placed sprite objects
+ * @returns {Array<Array<string>>} - 2D array of ASCII characters
+ */
+function renderScreen(terrain, sprites) {
+  const ASCIICanvas = Array.from({ length: ASCIIHeight }, () => Array(ASCIIWidth).fill(" "));
+
+  const getHeight = (x, y) => {
+    x -= xmin;
+    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return 0;
+    return terrain[y][x];
+  };
   const fillImg = (img, x, y, cover = true) => {
     for (let t = 0; t < img.length; t++) {
       for (let k = 0; k < img[t].length; k++) {
@@ -430,18 +400,6 @@ function drawScene() {
     }
   }
 
-  // for (let y = 0; y <= ymax; y++) {
-  //   const L = floor((-6 * y) / 7) - 1,
-  //     R = ceil((ASCIIWidth - 6 * y) / 7);
-  //   for (let x = R; x >= L; x--) {
-  //     const height = getHeight(x, y);
-  //     const i = y * 3 - height * 2 + 2,
-  //       j = x * 7 + y * 6 + 6;
-  //     if (i < 0 || i >= ASCIICanvas.length || j < 0 || j >= ASCIICanvas[0].length) continue;
-  //     ASCIICanvas[i][j] = minDist[y][x - xmin].toString();
-  //   }
-  // }
-
   for (let y = 0; y < ASCIICanvas.length; y++) {
     for (let x = 0; x < ASCIICanvas[y].length; x++) {
       if (ASCIICanvas[y][x] === "A") ASCIICanvas[y][x] = " ";
@@ -449,21 +407,6 @@ function drawScene() {
       else if (ASCIICanvas[y][x] === "C") ASCIICanvas[y][x] = ".";
     }
   }
-  socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
 
-  // textAlign(CENTER, CENTER);
-  // textSize(16);
-  // textFont(font);
-  // fill(255);
-  // for (let y = 0; y < ASCIICanvas.length; y++) {
-  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
-  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-  //   }
-  // }
-  // End of translate
-  pop();
+  return ASCIICanvas;
 }
-
-window.draw = function draw() {
-  // Empty draw function, scene is redrawn on button clicks
-};
