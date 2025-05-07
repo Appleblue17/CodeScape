@@ -14,6 +14,7 @@ import { capitalize, medianFilter, randomShuffle } from "./util.js";
 // Global variables
 export let font; // Font used for rendering ASCII characters
 let socket; // WebSocket connection for sending rendered ASCII art
+let speechRec; // Speech recognition object for voice commands
 
 /**
  * Preload assets before setup
@@ -61,6 +62,24 @@ window.setup = function setup() {
   drawScene();
 
   noiseSeed(0);
+  console.log(typeof p5.SpeechRec);
+  // initialize a voice recognition object
+  speechRec = new p5.SpeechRec("en-US", gotSpeech);
+  speechRec.continuous = true; // keep recognizing even after a pause
+  speechRec.interimResults = false; // do not return interim results
+
+  // start listening for speech input
+  speechRec.start();
+
+  // show the user to speak
+  console.log("Say something!");
+};
+
+function gotSpeech() {
+  if (speechRec.resultValue){
+    // output the recognized text to the console
+    console.log(speechRec.resultString);
+  }
 };
 
 /**
