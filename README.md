@@ -1,3 +1,9 @@
+## How to Run
+
+1. 安装 Live Server 插件，右键点击 `frontend/index.html`，选择 `Open with Live Server`，在浏览器中打开网页
+
+2. 在命令行中打开 `backend`，运行 `npm run start`
+
 ## 本地部署 ComfyUI API 指南
 
 本项目提供了本地部署 ComfyUI，并通过 API 的方式在 python 脚本中调用 ComfyUI，最终实现自定义调用的指引

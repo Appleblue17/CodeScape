@@ -110,15 +110,15 @@ function drawScene() {
 
   const ASCIICanvas = renderScreen(terrain, sprites);
 
-  // textAlign(CENTER, CENTER);
-  // textSize(16);
-  // textFont(font);
-  // fill(255);
-  // for (let y = 0; y < ASCIICanvas.length; y++) {
-  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
-  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-  //   }
-  // }
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  textFont(font);
+  fill(255);
+  for (let y = 0; y < ASCIICanvas.length; y++) {
+    for (let x = 0; x < ASCIICanvas[y].length; x++) {
+      text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
+    }
+  }
 
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
