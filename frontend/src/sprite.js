@@ -15,10 +15,9 @@ export default function getAsciiSprite(edgeMatrix, fillMatrix, brightScale = 1) 
     const ASCIIRowMatrix = [];
     for (let x = 0; x < spriteWidth; x++) {
       let ASCIIChar = " ";
-      if(edgeMatrix[y][x] !== " ") {
+      if (edgeMatrix[y][x] !== " ") {
         ASCIIChar = edgeMatrix[y][x];
-      }
-      else {
+      } else {
         const brightness = map(fillMatrix[y][x], 0, 255, 0, brightScale);
         const index = round(map(brightness, 0, 1, 0, charMap.length - 1, true));
         ASCIIChar = charMap[index];
@@ -27,7 +26,7 @@ export default function getAsciiSprite(edgeMatrix, fillMatrix, brightScale = 1) 
     }
     ASCIIMatrix.push(ASCIIRowMatrix);
   }
-  
+
   return ASCIIMatrix;
 }
 
@@ -51,7 +50,6 @@ export function generateSpriteFilling(img, spriteWidth, spriteHeight) {
   const ASCIIFillMatrix = getASCIIFill(img);
   return ASCIIFillMatrix;
 }
-
 
 function applyDoGFilter(src, dest) {
   // Create two blurred versions
