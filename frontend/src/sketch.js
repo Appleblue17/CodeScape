@@ -8,12 +8,14 @@
  * - ASCII character-based rendering of the 3D landscape
  */
 
+//import { text } from "body-parser";
 import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { capitalize, medianFilter, randomShuffle } from "./util.js";
 
 // Global variables
 export let font; // Font used for rendering ASCII characters
 let socket; // WebSocket connection for sending rendered ASCII art
+let socket_img; // WebSocket connection for sending rendered images
 let speechRec; // Speech recognition object for voice commands
 
 /**
@@ -52,17 +54,38 @@ window.preload = function preload() {
  */
 window.setup = function setup() {
   socket = new WebSocket("ws://localhost:8080");
+  socket_img = new WebSocket("ws://localhost:8081");
 
   // Set canvas to have much more space for the giant buttons
   createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
 
   socket.onopen = function () {
-    console.log("WebSocket is open now.");
+    console.log("WebSocket 8080 is open now.");
+  };
+
+  socket_img.onopen = function () {
+    console.log("WebSocket 8081 for image processing is open now.");
+  }
+  
+  socket_img.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+  setTimeout(() => {
+    socket_img = new WebSocket("ws://localhost:8081");
+  }, 1000); // 尝试在 1 秒后重新连接
+  };
+
+  socket_img.onerror = function (error) {
+    console.error("WebSocket error:", error);
   };
   drawScene();
 
   noiseSeed(0);
+  // check for the loading of the p5.SpeechRec library
   console.log(typeof p5.SpeechRec);
+  if (typeof p5.SpeechRec === "undefined") {
+    console.error("p5.SpeechRec is not defined. Please check your p5.js library version.");
+    return;
+  }
   // initialize a voice recognition object
   speechRec = new p5.SpeechRec("en-US", gotSpeech);
   speechRec.continuous = true; // keep recognizing even after a pause
@@ -79,6 +102,15 @@ function gotSpeech() {
   if (speechRec.resultValue){
     // output the recognized text to the console
     console.log(speechRec.resultString);
+
+    // send the recognized text to the backend server
+    if(socket_img.readyState === WebSocket.OPEN) {
+      const message = JSON.stringify({ text: speechRec.resultString });
+      socket_img.send(message);
+    }
+    else {
+      console.error("WebSocket is not open. Cannot send speech recognition result.");
+    }
   }
 };
 

@@ -4,6 +4,23 @@ import uuid
 import urllib.request
 import urllib.parse
 import random
+from websocket_server import WebsocketServer
+import threading
+
+# 设置全局工作目录和项目相关的路径
+
+# 输出目录
+WORKING_DIR = 'output'
+SageMaker_ComfyUI = WORKING_DIR
+
+# 工作流文件
+workflowfile = 'workflow_api.json'
+COMFYUI_ENDPOINT = '127.0.0.1:8188'
+
+server_address = COMFYUI_ENDPOINT
+client_id = str(uuid.uuid4())  # 生成一个唯一的客户端ID
+# 随机种子
+seed = 181473514749868
 
 # 定义一个函数来显示GIF图片
 def show_gif(fname):
@@ -88,32 +105,63 @@ def parse_worflow(ws, prompt, seed, workflowfile):
 
 # 生成图像并显示
 def generate_clip(prompt, seed, workflowfile, idx):
-    print('seed:'+str(seed))
-    ws = websocket.WebSocket()
-    ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))
-    images = parse_worflow(ws, prompt, seed, workflowfile)
+    try:
+        print('seed:'+str(seed))
+        ws = websocket.WebSocket()
+        ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))
+        images = parse_worflow(ws, prompt, seed, workflowfile)
 
-    for node_id in images:
-        for image_data in images[node_id]:
-            from datetime import datetime
+        for node_id in images:
+            for image_data in images[node_id]:
+                from datetime import datetime
 
-            # 获取当前时间，并格式化为 YYYYMMDDHHMMSS 的格式
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                # 获取当前时间，并格式化为 YYYYMMDDHHMMSS 的格式
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-            # 使用格式化的时间戳在文件名中
-            GIF_LOCATION = "{}/{}_{}_{}.png".format(SageMaker_ComfyUI, idx, seed, timestamp)
+                # 使用格式化的时间戳在文件名中
+                GIF_LOCATION = "{}/{}_{}_{}.png".format(SageMaker_ComfyUI, idx, seed, timestamp)
 
-            print('GIF_LOCATION:'+GIF_LOCATION)
-            with open(GIF_LOCATION, "wb") as binary_file:
-                # 写入二进制文件
-                binary_file.write(image_data)
+                print('GIF_LOCATION:'+GIF_LOCATION)
+                with open(GIF_LOCATION, "wb") as binary_file:
+                    # 写入二进制文件
+                    binary_file.write(image_data)
 
-            show_gif(GIF_LOCATION)
+                show_gif(GIF_LOCATION)
 
-            print("{} DONE!!!".format(GIF_LOCATION))
+                print("{} DONE!!!".format(GIF_LOCATION))
+    except Exception as e:
+        print(f"Error in generate_clip: {e}")
 
 
 import pandas as pd
+
+# 定义一个回调函数，当客户端连接时触发
+def new_client(client, server):
+    print(f"New client connected: {client['id']}")
+
+# 定义一个回调函数，当接收到消息时触发
+def message_received(client, server, message):
+    print(f"Message from client {client['id']}: {message}")
+    
+    # 解析接收到的消息（假设是纯文本或 JSON 格式）
+    try:
+        data = json.loads(message)  # 如果前端发送的是 JSON 格式
+        prompt = data.get("text", "")  # 获取语音转文字的内容
+        print(f"Received prompt: {prompt}")
+
+        # 调用生成图像的函数
+        while True:
+            threading.Thread(target=generate_clip, args=(prompt, seed, workflowfile, 1)).start()
+            if prompt == "exit":
+                print("Exiting...")
+                break
+            break  # 只启动一个线程，避免无限循环
+
+    except json.JSONDecodeError:
+        print("Invalid JSON received")
+    except Exception as e:
+        print(f"Error processing message: {e}")
+
 
 
 # Example of reading from a CSV file
@@ -123,16 +171,13 @@ def read_prompts_from_csv(csv_file_path):
 
 # Execute the main function
 if __name__ == "__main__":
-    # 设置工作目录和项目相关的路径
-    WORKING_DIR = 'output'
-    SageMaker_ComfyUI = WORKING_DIR
-    workflowfile = 'workflow_api.json'
-    COMFYUI_ENDPOINT = '127.0.0.1:8188'
+    # 创建 WebSocket 服务器
+    server = WebsocketServer(host="0.0.0.0", port=8081)
+    server.set_fn_new_client(new_client)
+    server.set_fn_message_received(message_received)
+    print("WebSocket server is running on ws://0.0.0.0:8081")
+    server.run_forever()
 
-    server_address = COMFYUI_ENDPOINT
-    client_id = str(uuid.uuid4())  # 生成一个唯一的客户端ID
-
-    seed = 181473514749868
     #csv_file_path = 'prompt.xlsx'
     #prompts = read_prompts_from_csv(csv_file_path)
 
@@ -141,5 +186,5 @@ if __name__ == "__main__":
      #   generate_clip(prompt, seed, workflowfile, idx)
       #  idx += 1
     #生成图像并显示
-    prompt = input("请输入提示词：")
-    generate_clip(prompt, seed, workflowfile, 1)
+    #prompt = input("请输入提示词：")
+    #generate_clip(prompt, seed, workflowfile, 1)
