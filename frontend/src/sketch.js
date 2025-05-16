@@ -16,7 +16,10 @@ import { capitalize, medianFilter, randomShuffle } from "./util.js";
 export let font; // Font used for rendering ASCII characters
 let socket; // WebSocket connection for sending rendered ASCII art
 let socket_img; // WebSocket connection for sending rendered images
+let socket_llm; // WebSocket connection for sending LLM requests
 let speechRec; // Speech recognition object for voice commands
+let chatModeOn = false; // Flag to indicate if chat mode is active
+let genPicModeOn = false; // Flag to indicate if picture generation mode is active
 
 /**
  * Preload assets before setup
@@ -55,6 +58,7 @@ window.preload = function preload() {
 window.setup = function setup() {
   socket = new WebSocket("ws://localhost:8080");
   socket_img = new WebSocket("ws://localhost:8081");
+  socket_llm = new WebSocket("ws://localhost:8082");
 
   // Set canvas to have much more space for the giant buttons
   createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
@@ -62,20 +66,40 @@ window.setup = function setup() {
   socket.onopen = function () {
     console.log("WebSocket 8080 is open now.");
   };
-
-  socket_img.onopen = function () {
-    console.log("WebSocket 8081 for image processing is open now.");
-  }
   
-  socket_img.onclose = function () {
-    console.error("WebSocket connection closed. Reconnecting...");
-  setTimeout(() => {
-    socket_img = new WebSocket("ws://localhost:8081");
-  }, 1000); // 尝试在 1 秒后重新连接
-  };
+  // Initialize the WebSocket connection for image processing
+  //socket_img.onopen = function () {
+  //  console.log("WebSocket 8081 for image processing is open now.");
+  //}
+  
+  //socket_img.onclose = function () {
+  //  console.error("WebSocket connection closed. Reconnecting...");
+  //setTimeout(() => {
+  //  socket_img = new WebSocket("ws://localhost:8081");
+  //}, 1000); // 尝试在 1 秒后重新连接
+  //};
 
-  socket_img.onerror = function (error) {
-    console.error("WebSocket error:", error);
+  //socket_img.onerror = function (error) {
+  //  console.error("WebSocket error for Picture Generation:", error);
+  //};
+
+  // Initialize the WebSocket connection for LLM processing
+  socket_llm.onopen = function () {
+    console.log("WebSocket 8082 for LLM processing is open now.");
+  }
+  socket_llm.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+    setTimeout(() => {
+      socket_llm = new WebSocket("ws://localhost:8082");
+    }, 1000); // 尝试在 1 秒后重新连接
+  };
+  socket_llm.onerror = function (error) {
+    console.error("WebSocket error for LLM requests:", error);
+  }
+  // real-time handling of LLM responses
+  socket_llm.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    console.log("Received LLM response:", data.response);
   };
   drawScene();
 
@@ -99,17 +123,61 @@ window.setup = function setup() {
 };
 
 function gotSpeech() {
+  console.log("gotSpeech called");
   if (speechRec.resultValue){
     // output the recognized text to the console
     console.log(speechRec.resultString);
+    // Turn the result string into a lowercase string
+    const result = speechRec.resultString.toLowerCase();
+    console.log("result: " + result);
 
-    // send the recognized text to the backend server
-    if(socket_img.readyState === WebSocket.OPEN) {
-      const message = JSON.stringify({ text: speechRec.resultString });
-      socket_img.send(message);
+    // send the recognized text to the backend server 
+    if(speechRec.resultString == "picture generation mode.") {
+      // if the recieved information asks to generate a picture:
+      genPicModeOn = true;
+      console.log("Picture Generation Mode On");
+      return;
+    }
+    else if (result == "exit picture generation mode.") {
+      genPicModeOn = false;
+      console.log("Picture Generation Mode Off");
+      return;
+    }
+    else if (result == "chat mode."){
+      // if the recieved information asks to chat:
+      console.log("Chat Mode On");
+      chatModeOn = true;
+      return;
+    }
+    else if (result == "exit chat mode.") {
+      // if the recieved information asks to exit chat mode:
+      console.log("Chat Mode Off");
+      chatModeOn = false;
+      return;
     }
     else {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
+    }
+
+    if (chatModeOn && genPicModeOn== false) {
+      // if the chat mode is on, send the recognized text to the backend server
+      if (socket_llm.readyState === WebSocket.OPEN) {
+        console.log("Chatting with LLM");
+        const message = JSON.stringify({ text: speechRec.resultString });
+        socket_llm.send(message);
+      } else {
+        console.error("WebSocket is not open. Cannot send speech recognition result.");
+      }
+    }
+    else if (genPicModeOn && chatModeOn == false) {
+      // if the picture generation mode is on, send the recognized text to the backend server
+      if (socket_img.readyState === WebSocket.OPEN) {
+        console.log("Generating picture");
+        const message = JSON.stringify({ text: speechRec.resultString });
+        socket_img.send(message);
+      } else {
+        console.error("WebSocket is not open. Cannot send speech recognition result.");
+      }
     }
   }
 };
