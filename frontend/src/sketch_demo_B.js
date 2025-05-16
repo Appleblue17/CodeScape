@@ -11,8 +11,6 @@
 //import { text } from "body-parser";
 import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { capitalize, medianFilter, randomShuffle } from "./util.js";
-import forestSpriteList from "./sprite_list/forest.js";
-import fungiSpriteList from "./sprite_list/fungi.js";
 
 // Global variables
 export let font; // Font used for rendering ASCII characters
@@ -29,20 +27,15 @@ let speechRec; // Speech recognition object for voice commands
 window.preload = function preload() {
   font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
   pixelDensity(1);
-  for (let sprite of fungiSpriteList) {
+  for (let sprite of spriteList) {
     sprite.loadedImg = loadImage(
       sprite.img,
       // Success callback - called when the image is fully loaded
-      (img) => {
+      () => {
         console.log("loaded: " + sprite.name);
-        
-        img.filter(GRAY);
-        img.filter(INVERT);
-        
         // Generate edge and fill images once the image is fully loaded
-        
-        sprite.edgeImg = generateSpriteEdge(img, sprite.width, sprite.height);
-        sprite.fillImg = generateSpriteFilling(img, sprite.width, sprite.height);
+        sprite.edgeImg = generateSpriteEdge(sprite.loadedImg, sprite.width, sprite.height);
+        sprite.fillImg = generateSpriteFilling(sprite.loadedImg, sprite.width, sprite.height);
 
         for (let i = 0; i < sprite.weight * 5; i++) {
           spriteRollList.push(sprite);
@@ -187,7 +180,7 @@ function drawScene() {
  * Current terrain type - controls landscape generation algorithm
  * Options: "mountain", "hill", "debug"
  */
-let terrainType = "plain";
+let terrainType = "mountain";
 
 /**
  * Generates terrain height map based on the selected terrain type
@@ -228,7 +221,64 @@ function generateTerrain(terrain, offset) {
   }
 }
 
-
+/**
+ * Sprite definitions with size, distribution and weighting parameters
+ * - name: Sprite identifier
+ * - img: Path to image asset
+ * - width/height: Dimensions in pixels
+ * - dist: Minimum spacing distance between sprites
+ * - weight: Relative probability of selection (higher = more common)
+ */
+const spriteList = [
+  {
+    name: "tree_small",
+    img: "./assets/tree_small.png",
+    width: 16,
+    height: 12,
+    dist: 2,
+    weight: 3,
+  },
+  {
+    name: "tree_medium",
+    img: "./assets/tree_medium.png",
+    width: 32,
+    height: 24,
+    dist: 5,
+    weight: 10,
+  },
+  {
+    name: "tree_big",
+    img: "./assets/tree_big.png",
+    width: 48,
+    height: 32,
+    dist: 8,
+    weight: 10,
+  },
+  {
+    name: "tree_large",
+    img: "./assets/tree_large.png",
+    width: 64,
+    height: 48,
+    dist: 10,
+    weight: 10,
+  },
+  {
+    name: "rock_small",
+    img: "./assets/rock_small.png",
+    width: 16,
+    height: 8,
+    dist: 5,
+    weight: 1,
+  },
+  {
+    name: "rock_big",
+    img: "./assets/rock_big.png",
+    width: 32,
+    height: 16,
+    dist: 10,
+    weight: 2,
+  },
+];
 
 const spriteRollList = []; // Weighted list for random sprite selection
 let spriteRollIndex = 0; // Current position in the sprite selection list
@@ -298,7 +348,7 @@ function generateSpritePosition(terrain, sprites) {
   for (let t = 0; t < gridPermutation.length; t++) {
     const { x, y } = gridPermutation[t];
     if (occupied[y][x - xmin]) continue;
-    const density = noise(x / 50, y / 50);
+    const density = noise(x / 50, y / 50) * 0.3;
     if (random() < density) {
       let attempt = 0;
       while (attempt < 10) {

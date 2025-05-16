@@ -10,7 +10,7 @@ export default function getAsciiSprite(edgeMatrix, fillMatrix, brightScale = 1) 
     spriteHeight = edgeMatrix.length;
   const ASCIIMatrix = [];
 
-  const charMap = " .:-+*oO%#@";
+  const charMap = "  .:-+*oO%#@";
   for (let y = 0; y < spriteHeight; y++) {
     const ASCIIRowMatrix = [];
     for (let x = 0; x < spriteWidth; x++) {
@@ -32,7 +32,6 @@ export default function getAsciiSprite(edgeMatrix, fillMatrix, brightScale = 1) 
 
 export function generateSpriteEdge(img, spriteWidth, spriteHeight) {
   img.resize(spriteWidth * 8, spriteHeight * 16);
-  img.filter(GRAY);
 
   const dogResult = createImage(spriteWidth * 8, spriteHeight * 16);
   const sobelResult = createImage(spriteWidth * 8, spriteHeight * 16);
@@ -45,7 +44,6 @@ export function generateSpriteEdge(img, spriteWidth, spriteHeight) {
 
 export function generateSpriteFilling(img, spriteWidth, spriteHeight) {
   img.resize(spriteWidth * 8, spriteHeight * 16);
-  img.filter(GRAY);
 
   const ASCIIFillMatrix = getASCIIFill(img);
   return ASCIIFillMatrix;
