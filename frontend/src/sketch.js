@@ -16,9 +16,10 @@ import fungiSpriteList from "./sprite_list/fungi.js";
 
 // Global variables
 export let font; // Font used for rendering ASCII characters
-let socket; // WebSocket connection for sending rendered ASCII art
-let socket_img; // WebSocket connection for sending rendered images
-let socket_llm; // WebSocket connection for sending LLM requests
+let ready;
+let socket, socketReady; // WebSocket connection for sending rendered ASCII art
+let socket_img, socket_imgReady; // WebSocket connection for sending rendered images
+let socket_llm, socket_llmReady; // WebSocket connection for sending LLM requests
 let speechRec; // Speech recognition object for voice commands
 let chatModeOn = false; // Flag to indicate if chat mode is active
 let genPicModeOn = false; // Flag to indicate if picture generation mode is active
@@ -32,31 +33,38 @@ let genPicModeOn = false; // Flag to indicate if picture generation mode is acti
 window.preload = function preload() {
   font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
   pixelDensity(1);
-  for (let sprite of fungiSpriteList) {
+  for (let sprite of [...forestSpriteList, ...fungiSpriteList]) {
     sprite.loadedImg = loadImage(
       sprite.img,
       // Success callback - called when the image is fully loaded
       (img) => {
         console.log("loaded: " + sprite.name);
-        
+
         img.filter(GRAY);
         img.filter(INVERT);
-        
+
         // Generate edge and fill images once the image is fully loaded
-        
         sprite.edgeImg = generateSpriteEdge(img, sprite.width, sprite.height);
         sprite.fillImg = generateSpriteFilling(img, sprite.width, sprite.height);
-
-        for (let i = 0; i < sprite.weight * 5; i++) {
-          spriteRollList.push(sprite);
-        }
       },
       () => {
         console.log("error loading: " + sprite.name);
       }
     );
   }
-  randomShuffle(spriteRollList);
+  const extentedForestSpriteList = [],
+    extendedFungiSpriteList = [];
+  for (let sprite of forestSpriteList) {
+    for (let i = 0; i < 10; i++) extentedForestSpriteList.push(sprite);
+  }
+  for (let sprite of fungiSpriteList) {
+    for (let i = 0; i < 10; i++) extendedFungiSpriteList.push(sprite);
+  }
+
+  randomShuffle(extentedForestSpriteList);
+  randomShuffle(extendedFungiSpriteList);
+  spriteRollList["forest"] = extentedForestSpriteList;
+  spriteRollList["fungi"] = extendedFungiSpriteList;
 };
 
 /**
@@ -71,14 +79,16 @@ window.setup = function setup() {
   createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
 
   socket.onopen = function () {
-    console.log("WebSocket 8080 is open now.");
+    console.log("WebSocket 8080 (backend) is open now.");
+    socketReady = true;
   };
-  
+
   // Initialize the WebSocket connection for image processing
   //socket_img.onopen = function () {
-  //  console.log("WebSocket 8081 for image processing is open now.");
+  //  console.log("WebSocket 8081 (image processing) is open now.");
+  //  socket_imgReady = true;
   //}
-  
+
   //socket_img.onclose = function () {
   //  console.error("WebSocket connection closed. Reconnecting...");
   //setTimeout(() => {
@@ -91,24 +101,25 @@ window.setup = function setup() {
   //};
 
   // Initialize the WebSocket connection for LLM processing
-  socket_llm.onopen = function () {
-    console.log("WebSocket 8082 for LLM processing is open now.");
-  }
-  socket_llm.onclose = function () {
-    console.error("WebSocket connection closed. Reconnecting...");
-    setTimeout(() => {
-      socket_llm = new WebSocket("ws://localhost:8082");
-    }, 1000); // 尝试在 1 秒后重新连接
-  };
-  socket_llm.onerror = function (error) {
-    console.error("WebSocket error for LLM requests:", error);
-  }
-  // real-time handling of LLM responses
-  socket_llm.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    console.log("Received LLM response:", data.response);
-  };
-  drawScene();
+  // socket_llm.onopen = function () {
+  //   console.log("WebSocket 8082 (LLM processing) is open now.");
+  //   socket_llmReady = true;
+  // }
+  // socket_llm.onclose = function () {
+  //   console.error("WebSocket connection closed. Reconnecting...");
+  //   setTimeout(() => {
+  //     socket_llm = new WebSocket("ws://localhost:8082");
+  //   }, 1000); // 尝试在 1 秒后重新连接
+  // };
+  // socket_llm.onerror = function (error) {
+  //   console.error("WebSocket error for LLM requests:", error);
+  // }
+
+  // // real-time handling of LLM responses
+  // socket_llm.onmessage = function (event) {
+  //   const data = JSON.parse(event.data);
+  //   console.log("Received LLM response:", data.response);
+  // };
 
   noiseSeed(0);
   // check for the loading of the p5.SpeechRec library
@@ -127,46 +138,60 @@ window.setup = function setup() {
 
   // show the user to speak
   console.log("Say something!");
+
+  function checkAndDrawScene() {
+    // if (socketReady && socket_imgReady && socket_llmReady) {
+    if (socketReady) {
+      ready = true;
+      console.log("All WebSocket connections are open.");
+      drawScene();
+    } else {
+      setTimeout(checkAndDrawScene, 100);
+    }
+  }
+  checkAndDrawScene();
+
+  for (let i = -20; i <= 20; i++) {
+    // console.log(i, getTemperature(i * ASCIIWidth));
+    console.log(i, getBiomeType(i * ASCIIWidth));
+  }
 };
 
 function gotSpeech() {
+  if (!ready) return;
   console.log("gotSpeech called");
-  if (speechRec.resultValue){
+  if (speechRec.resultValue) {
     // output the recognized text to the console
     console.log(speechRec.resultString);
     // Turn the result string into a lowercase string
     const result = speechRec.resultString.toLowerCase();
     console.log("result: " + result);
 
-    // send the recognized text to the backend server 
-    if(speechRec.resultString == "picture generation mode.") {
+    // send the recognized text to the backend server
+    if (speechRec.resultString == "picture generation mode.") {
       // if the recieved information asks to generate a picture:
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
       return;
-    }
-    else if (result == "exit picture generation mode.") {
+    } else if (result == "exit picture generation mode.") {
       genPicModeOn = false;
       console.log("Picture Generation Mode Off");
       return;
-    }
-    else if (result == "chat mode."){
+    } else if (result == "chat mode.") {
       // if the recieved information asks to chat:
       console.log("Chat Mode On");
       chatModeOn = true;
       return;
-    }
-    else if (result == "exit chat mode.") {
+    } else if (result == "exit chat mode.") {
       // if the recieved information asks to exit chat mode:
       console.log("Chat Mode Off");
       chatModeOn = false;
       return;
-    }
-    else {
+    } else {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
     }
 
-    if (chatModeOn && genPicModeOn== false) {
+    if (chatModeOn && genPicModeOn == false) {
       // if the chat mode is on, send the recognized text to the backend server
       if (socket_llm.readyState === WebSocket.OPEN) {
         console.log("Chatting with LLM");
@@ -175,8 +200,7 @@ function gotSpeech() {
       } else {
         console.error("WebSocket is not open. Cannot send speech recognition result.");
       }
-    }
-    else if (genPicModeOn && chatModeOn == false) {
+    } else if (genPicModeOn && chatModeOn == false) {
       // if the picture generation mode is on, send the recognized text to the backend server
       if (socket_img.readyState === WebSocket.OPEN) {
         console.log("Generating picture");
@@ -187,7 +211,7 @@ function gotSpeech() {
       }
     }
   }
-};
+}
 
 /**
  * Handle keyboard input to control camera movement
@@ -195,25 +219,27 @@ function gotSpeech() {
  * - Right arrow key: Move camera right
  */
 window.keyPressed = function keyPressed() {
+  if (!ready) return;
   if (keyCode === LEFT_ARROW) {
     cameraX -= 10; // Move camera left
-    drawScene();
   } else if (keyCode === RIGHT_ARROW) {
     cameraX += 10; // Move camera right
-    drawScene();
   }
+  console.log("camera", cameraX);
+  drawScene();
 };
 
 // Canvas dimension constants
-const ASCIIWidth = 600,
-  ASCIIHeight = 180;
+const ASCIIWidth = 640,
+  ASCIIHeight = 144;
 let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 
 let cameraX = 100; // Camera position in the X direction
-const spritePages = []; // Store generated sprite in previous pages
-let spritePageStart = 0,
-  spritePageEnd = -1; // Start and end indices for sprite pages
+const terrainPages = [],
+  spritePages = []; // Store generated sprite in previous pages
+let pageStart = 0,
+  pageEnd = -1; // Start and end indices for sprite pages
 
 /**
  * Main rendering function - draws the ASCII landscape scene
@@ -229,33 +255,49 @@ function drawScene() {
   mapWidth = xmax - xmin + 1;
   mapHeight = ymax + 1;
 
-  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
-  generateTerrain(terrain, cameraX);
-
+  refreshPages(cameraX);
+  const terrain = getTerrain(cameraX);
   const sprites = getSpritePosition(cameraX);
 
   const ASCIICanvas = renderScreen(terrain, sprites);
 
-  textAlign(CENTER, CENTER);
-  textSize(16);
-  textFont(font);
-  fill(255);
-  for (let y = 0; y < ASCIICanvas.length; y++) {
-    for (let x = 0; x < ASCIICanvas[y].length; x++) {
-      text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-    }
-  }
+  // textAlign(CENTER, CENTER);
+  // textSize(16);
+  // textFont(font);
+  // fill(255);
+  // for (let y = 0; y < ASCIICanvas.length; y++) {
+  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
+  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
+  //   }
+  // }
 
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
   }
 }
 
-/**
- * Current terrain type - controls landscape generation algorithm
- * Options: "mountain", "hill", "debug"
- */
-let terrainType = "plain";
+function getTemperature(offset) {
+  const x = offset / ASCIIWidth;
+  const temp = -273.15 + Math.exp((-x * x) / 3600) * 300;
+  const randomTemp = random() * 10;
+  return Math.max(temp + randomTemp, -273.15);
+}
+
+function getBiomeType(offset) {
+  const temp = getTemperature(offset);
+  if (temp < 0) {
+    return "ice";
+  } else {
+    let e = noise(offset / 2 + 20);
+    if (e < 0.4) {
+      return "fungi";
+    } else if (e < 0.7) {
+      return "forest";
+    } else {
+      return "fungi";
+    }
+  }
+}
 
 /**
  * Generates terrain height map based on the selected terrain type
@@ -264,16 +306,25 @@ let terrainType = "plain";
  * @param {Array<Array<number>>} terrain - 2D array to store elevation values
  */
 function generateTerrain(terrain, offset) {
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
-      let e = noise((x + offset) / 50, y / 50) * 10;
-      terrain[y][x] = ceil(e);
-    }
-  }
-  medianFilter(terrain, 10);
+  const biomeType = getBiomeType(offset);
 
-  // hills
-  if (terrainType === "hill") {
+  if (biomeType === "forest") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise((x + offset) / 50, y / 50) * 10;
+        terrain[y][x] = ceil(e);
+      }
+    }
+    medianFilter(terrain, 10);
+  } else if (biomeType === "hill") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise((x + offset) / 50, y / 50) * 10;
+        terrain[y][x] = ceil(e);
+      }
+    }
+    medianFilter(terrain, 10);
+
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         let e = noise((x + offset) / 10 + 5, y / 10 + 5) * 30;
@@ -281,11 +332,15 @@ function generateTerrain(terrain, offset) {
       }
     }
     medianFilter(terrain, 8);
-  }
+  } else if (biomeType === "mountain") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise((x + offset) / 50, y / 50) * 10;
+        terrain[y][x] = ceil(e);
+      }
+    }
+    medianFilter(terrain, 10);
 
-  //mountain
-  if (terrainType === "mountain") {
-    console.log("OK");
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         let e = noise((x + offset) / 40 + 5, y / 40 + 5) * 60;
@@ -296,9 +351,7 @@ function generateTerrain(terrain, offset) {
   }
 }
 
-
-
-const spriteRollList = []; // Weighted list for random sprite selection
+const spriteRollList = {}; // Weighted list for random sprite selection
 let spriteRollIndex = 0; // Current position in the sprite selection list
 
 /**
@@ -309,10 +362,12 @@ let spriteRollIndex = 0; // Current position in the sprite selection list
  *
  * @param {Array<Array<number>>} terrain - The terrain height map
  * @param {Array<Array<Object>>} sprites - 2D array to store placed sprites
+ * @param {number} offset - The offset for the terrain generation
  */
-function generateSpritePosition(terrain, sprites) {
+function generateSpritePosition(terrain, sprites, offset) {
   let minDist = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
   let occupied = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
+  const biomeType = getBiomeType(offset);
 
   const getHeight = (x, y) => {
     x -= xmin;
@@ -370,8 +425,8 @@ function generateSpritePosition(terrain, sprites) {
     if (random() < density) {
       let attempt = 0;
       while (attempt < 10) {
-        const sprite = spriteRollList[spriteRollIndex];
-        spriteRollIndex = (spriteRollIndex + 1) % spriteRollList.length;
+        const sprite = spriteRollList[biomeType][spriteRollIndex];
+        spriteRollIndex = (spriteRollIndex + 1) % spriteRollList[biomeType].length;
         if (sprite.dist <= minDist[y][x - xmin]) {
           sprites[y][x - xmin] = sprite;
           setOccupy(x, y, round(sprite.dist * 0.5));
@@ -383,48 +438,71 @@ function generateSpritePosition(terrain, sprites) {
   }
 }
 
-function extendSpritePosition(direction) {
-  console.log("extendSpritePosition", direction);
-  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
+function extendPages(direction) {
+  console.log("extend", direction);
   if (direction === 0) {
     // Extend to the left
+    terrainPages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0)));
     spritePages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
-    generateTerrain(terrain, (spritePageStart - 1) * mapWidth);
-    generateSpritePosition(terrain, spritePages[0]);
-    spritePageStart--;
+    generateTerrain(terrainPages[0], (pageStart - 1) * mapWidth);
+    generateSpritePosition(terrainPages[0], spritePages[0], (pageStart - 1) * mapWidth);
+    pageStart--;
   } else {
     // Extend to the right
+    terrainPages.push(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0)));
     spritePages.push(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
-    generateTerrain(terrain, (spritePageEnd + 1) * mapWidth);
-    generateSpritePosition(terrain, spritePages[spritePages.length - 1]);
-    spritePageEnd++;
+    generateTerrain(terrainPages[terrainPages.length - 1], (pageEnd + 1) * mapWidth);
+    generateSpritePosition(
+      terrainPages[terrainPages.length - 1],
+      spritePages[spritePages.length - 1],
+      (pageEnd + 1) * mapWidth
+    );
+    pageEnd++;
   }
 }
 
+function refreshPages(offset) {
+  while (offset < pageStart * mapWidth) {
+    extendPages(0);
+  }
+  while (offset >= pageEnd * mapWidth) {
+    extendPages(1);
+  }
+}
+
+function getTerrain(offset) {
+  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
+  // calculate which page the offset is in
+  const page = Math.floor((offset - pageStart * mapWidth) / mapWidth);
+  const pageOffset = offset - (pageStart + page) * mapWidth;
+
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = pageOffset; x < mapWidth; x++) {
+      terrain[y][x - pageOffset] = terrainPages[page][y][x];
+    }
+  }
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < pageOffset; x++) {
+      terrain[y][x + mapWidth - pageOffset] = terrainPages[page + 1][y][x];
+    }
+  }
+  return terrain;
+}
+
 function getSpritePosition(offset) {
-  while (offset < spritePageStart * mapWidth) {
-    extendSpritePosition(0);
-  }
-  while (offset >= spritePageEnd * mapWidth) {
-    extendSpritePosition(1);
-  }
   let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
   // calculate which page the offset is in
-  let page = Math.floor((offset - spritePageStart * mapWidth) / mapWidth);
-  let pageOffset = offset - (spritePageStart + page) * mapWidth;
+  const page = Math.floor((offset - pageStart * mapWidth) / mapWidth);
+  const pageOffset = offset - (pageStart + page) * mapWidth;
 
   for (let y = 0; y < mapHeight; y++) {
     for (let x = pageOffset; x < mapWidth; x++) {
       sprites[y][x - pageOffset] = spritePages[page][y][x];
     }
   }
-
-  // Fill the right half of the sprite with the next page
-  console.log(mapWidth - pageOffset);
   for (let y = 0; y < mapHeight; y++) {
     for (let x = 0; x < pageOffset; x++) {
       sprites[y][x + mapWidth - pageOffset] = spritePages[page + 1][y][x];
-      // if(console.log(spritePages[page + 1][y][x]);
     }
   }
   return sprites;

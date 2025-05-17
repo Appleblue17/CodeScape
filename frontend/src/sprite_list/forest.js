@@ -69,7 +69,7 @@ const spriteList = [
     width: 54,
     height: 42,
     dist: 5,
-    weight: 10,
+    weight: 5,
   },
   {
     name: "Moss-Covered Log 1",

@@ -58,18 +58,18 @@ const spriteList = [
   {
     name: "Fly Agaric 1",
     img: "../pregen/output/fungi/Fly Agaric 1.png",
-    width: 18,
-    height: 12,
+    width: 16,
+    height: 10,
     dist: 4,
     weight: 6,
   },
   {
     name: "Fly Agaric 2",
     img: "../pregen/output/fungi/Fly Agaric 2.png",
-    width: 24,
-    height: 18,
+    width: 14,
+    height: 9,
     dist: 3,
-    weight: 6,
+    weight: 10,
   },
   {
     name: "Fungus-Covered Stone 1",
@@ -90,9 +90,9 @@ const spriteList = [
   {
     name: "Turkey Tail Fungi 1",
     img: "../pregen/output/fungi/Turkey Tail Fungi 1.png",
-    width: 32,
-    height: 20,
-    dist: 5,
+    width: 24,
+    height: 15,
+    dist: 3,
     weight: 3,
   },
   {
