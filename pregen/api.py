@@ -52,9 +52,9 @@ def get_history(prompt_id):
 # 定义一个函数来获取图片，这涉及到监听WebSocket消息
 def get_images(ws, prompt):
     prompt_id = queue_prompt(prompt)['prompt_id']
-    print('prompt')
-    print(prompt)
-    print('prompt_id:{}'.format(prompt_id))
+    #print('prompt')
+    #print(prompt)
+    #print('prompt_id:{}'.format(prompt_id))
     output_images = {}
     while True:
         out = ws.recv()
@@ -69,7 +69,7 @@ def get_images(ws, prompt):
             continue  # 预览为二进制数据
 
     history = get_history(prompt_id)[prompt_id]
-    print(history)
+    #print(history)
     for o in history['outputs']:
         for node_id in history['outputs']:
             node_output = history['outputs'][node_id]
@@ -89,7 +89,7 @@ def get_images(ws, prompt):
                 output_images[node_id] = videos_output
 
     print('获取图片完成')
-    print(output_images)
+    #print(output_images)
     return output_images
 
 # 解析工作流并获取图片
@@ -173,11 +173,14 @@ def read_prompts_from_csv(csv_file_path):
 if __name__ == "__main__":
     # 创建 WebSocket 服务器
     
+    '''
     server = WebsocketServer(host="0.0.0.0", port=8081)
     server.set_fn_new_client(new_client)
     server.set_fn_message_received(message_received)
     print("WebSocket server is running on ws://0.0.0.0:8081")
     server.run_forever()
+    '''    
+    
 
     #csv_file_path = 'prompt.xlsx'
     #prompts = read_prompts_from_csv(csv_file_path)
@@ -187,12 +190,12 @@ if __name__ == "__main__":
      #   generate_clip(prompt, seed, workflowfile, idx)
       #  idx += 1
     #生成图像并显示
-    '''
+    
     while True:
         prompt = input("请输入提示词：")
         if prompt == "exit":
             print("Exiting...")
             break
         generate_clip(prompt, seed, workflowfile, 1)
-    '''
+    
     
