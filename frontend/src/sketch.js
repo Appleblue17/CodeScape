@@ -84,16 +84,16 @@ window.setup = function setup() {
   };
 
   // Initialize the WebSocket connection for image processing
-  //socket_img.onopen = function () {
-  //  console.log("WebSocket 8081 for image processing is open now.");
-  //}
+  socket_img.onopen = function () {
+    console.log("WebSocket 8081 for image processing is open now.");
+  }
   
-  //socket_img.onclose = function () {
-  //  console.error("WebSocket connection closed. Reconnecting...");
-  //setTimeout(() => {
-  //  socket_img = new WebSocket("ws://localhost:8081");
-  //}, 1000); // 尝试在 1 秒后重新连接
-  //};
+  socket_img.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+  setTimeout(() => {
+    socket_img = new WebSocket("ws://localhost:8081");
+  }, 1000); // 尝试在 1 秒后重新连接
+  };
 
   socket_img.onerror = function (error) {
     console.error("WebSocket error for Picture Generation:", error);
@@ -102,25 +102,25 @@ window.setup = function setup() {
   
 
   // Initialize the WebSocket connection for LLM processing
-  // socket_llm.onopen = function () {
-  //   console.log("WebSocket 8082 (LLM processing) is open now.");
-  //   socket_llmReady = true;
-  // }
-  // socket_llm.onclose = function () {
-  //   console.error("WebSocket connection closed. Reconnecting...");
-  //   setTimeout(() => {
-  //     socket_llm = new WebSocket("ws://localhost:8082");
-  //   }, 1000); // 尝试在 1 秒后重新连接
-  // };
-  // socket_llm.onerror = function (error) {
-  //   console.error("WebSocket error for LLM requests:", error);
-  // }
+  socket_llm.onopen = function () {
+     console.log("WebSocket 8082 (LLM processing) is open now.");
+     socket_llmReady = true;
+  }
+  socket_llm.onclose = function () {
+     console.error("WebSocket connection closed. Reconnecting...");
+     setTimeout(() => {
+       socket_llm = new WebSocket("ws://localhost:8082");
+     }, 1000); // 尝试在 1 秒后重新连接
+  };
+  socket_llm.onerror = function (error) {
+     console.error("WebSocket error for LLM requests:", error);
+  };
 
-  // // real-time handling of LLM responses
-  // socket_llm.onmessage = function (event) {
-  //   const data = JSON.parse(event.data);
-  //   console.log("Received LLM response:", data.response);
-  // };
+   // real-time handling of LLM responses
+  socket_llm.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    console.log("Received LLM response:", data.response);
+  };
 
   noiseSeed(0);
   // check for the loading of the p5.SpeechRec library
