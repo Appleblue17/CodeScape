@@ -1,0 +1,84 @@
+**Temperate Forest Sprites**  
+
+---  
+**1. Deciduous Tree**  
+1. **Mature Oak**: A 2D pixel art style game asset of a broad, gnarled oak tree with deeply textured bark and a dense canopy of vibrant green leaves, sunlight filtering through the branches, clusters of acorns visible among the foliage.  Single, isolated object with the tree only, no other stuffs. Pure white background.
+
+2. Young Birch: A 2D game asset of a lender white trunk with horizontal black fissures, sparse clusters of small lime-green leaves, thin drooping branches.  Single, isolated object with the tree only, no other stuffs. Pure white background.
+
+3. **Autumn Maple**: A 2D pixel art style game asset of an autumn maple, excluding ground below roots, featuring wide crown of fiery orange-red leaves with serrated edges, thick trunk covered in peeling cinnamon-colored bark, fallen leaves pooled at the base.  Single, isolated object with the tree only ,visible roots above ground, no other stuffs. Pure white background. Clear outline with black contour line. Detailed plant anatomy, with clear branch and leaf separation
+
+4. **Storm-Damaged Oak**: A 2D pixel art style game asset of a storm-damaged oak, with sparse and withered brown leaves, featuring split trunk with exposed heartwood, broken limbs dangling, uneven canopy with patches of dead branches.  Single, isolated object with the tree only ,visible roots above ground, no other stuffs. Pure white background. Clear outline with black contour line. Detailed plant anatomy, with clear branch and leaf separation.
+
+5. **Flowering Dogwood**: A 2D pixel art style game asset of a Flowering Dogwood, with delicate white or pink blossoms covering layered branches, smooth gray bark with subtle ridges, dappled shade beneath.  Single, isolated object with the tree only ,visible roots above ground, no other stuffs. Pure white background. Clear outline with black contour line. Detailed plant anatomy, with clear branch and leaf separation.
+
+---  
+**2. Undergrowth Ferns**  
+1. **Curled Fiddlehead**: A 2D pixel art style game asset of a tightly coiled young fern fronds with bright emerald green leaves and brownish red stems, emerging from damp soil with dewdrops clinging to the spiral tips.  Single, isolated object with the plant only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+2. **Mature Frond**:A 2D pixel art style game asset of a lush green fern with feathery, overlapping leaflets, arching brownish red connected stems casting faint shadows on the forest floor.  Single, isolated object with the plant only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+3. **Sunlit Fern Cluster**: A 2D pixel art style game asset of a deep yellow-green fronds with translucent edges, backlit by shafts of sunlight, tiny insects crawling along the stems.  Single, isolated object with the plant only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+4. **Frost-Tipped Fern**: A 2D pixel art style game asset of an isolated Frost-Tipped Fern, with Fronds with crystalline frost along the edges, fading from deep green to pale silver, delicate ice patterns.  Single, isolated object with the plant only , no other stuffs. Pure white background with the plant only. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+5. **Withered Fern**: A 2D pixel art style game asset of a withered, languished Fern, featuring dark brown foliage curling inward, cracked and brittle texture, scattered fallen leaflets around the base. Single, isolated object with the plant only , no other stuffs. Pure white background with the plant only. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+
+---  
+**3. Forest Rocks**  
+1. **Mossy Boulder**: A 2D pixel art style game asset of a Mossy Boulder, A massive, weathered stone covered in thick velvety moss, patches of lichen spreading across its surface, deep cracks revealing darker stone beneath.  Single, isolated object with the rock only , no other stuffs. Pure white background. Clear outline with black contour line.
+2. **Stream-Worn Stone**: A 2D pixel art style game asset of several smooth and round oval rocks lying in groups. With the rocks only , no other stuffs.  Pure white background. Clear outline with black contour line.
+
+3. **Quartz-Veined Granite**: A 2D pixel art style game asset of a Quartz-Veined Granite, an angular gray rock shot through with white quartz seams, sharp edges softened by patches of bright green moss.  Single, isolated object with the rock only , no other stuffs. Pure white background. Clear outline with black contour line.
+
+❌4. **Iron-Rich Hematite**: A 2D pixel art style game asset of  Iron-Rich Hematite.  Single, isolated object with the rock only , no other stuffs. Pure white background. Clear outline with black contour line.
+
+5. **Fungus-Covered Stone**: A 2D pixel art style game asset of a chunky Stone, with some fungi growing inthe crevices of the rock, decorated by some moss.  Single, isolated object with the rock only , no other stuffs. Pure white background. Clear outline with black contour line.
+
+
+---  
+**4. Forest Critters**  
+1. **Red Squirrel**:  A 2D pixel art style game asset of a Red Squirrel, a Bushy-tailed rodent with russet fur and white underbelly, perching on the ground,  alert expression.  Single, isolated object with the creature only , no other stuffs. Pure white background. Clear outline with black contour line.
+
+2. **Spotted Fawn**:A 2D pixel art style game asset of a Young deer with soft brown coat dotted by white spots, large liquid eyes, delicate legs folded beneath it in resting position. Single, isolated object with the creature only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact animal anatomy.
+ 
+3. **Striped Chipmunk**:A 2D pixel art style game asset of a Striped Chipmunk, a Small striped rodent with puffed cheeks.  Single, isolated critter with the creature only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact animal anatomy.
+
+❌4. **Earthworm**:A 2D pixel art style game asset of an earthworm.  Single, isolated critter with the creature only , no other stuffs. Pure white background. Clear outline with black contour line. 
+5. **Tree Frog**: A 2D pixel art style game asset of a Tree Frog, a Bright green amphibian.  Single, isolated critter with the creature only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact animal anatomy.
+
+
+---  
+**5. Mushrooms**  
+1. **Fly Agaric**:A 2D pixel art style game asset of a fly agaric, featuring classic red mushroom cap with stark white warts dotted evenly on it, creamy-white single stem with a crumbling annulus ring and no branches.  Single, isolated critter with the creatures only , no other stuffs. Pure white background. Clear outline with black contour line. 
+
+❌2. **Chanterelle Cluster**: A 2D pixel art style game asset of bunched Trumpet-shaped golden mushrooms, gill-like ridges running down curved caps. Each of the mushroom in the cluster is isolated, not stemming from other mushrooms. With the creatures only , no other stuffs. Pure white background. Clear outline with black contour line. 
+
+3. **Turkey Tail Fungi**:A 2D pixel art style game asset of Turkey Tail Fungi, with rings of brown, tan, and rust color, growing on a fallen log.  Single, isolated critter with the creatures only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed, intact and realistic plant anatomy.
+
+❌4. **Ink Cap**: A 2D pixel art style game asset of phallaceae, a Tall slender mushroom with bell-shaped gray cap, fragile stem.  Single, isolated critter with the creatures only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+5. **Elf Cup**: A 2D pixel art style game asset of Tiny bright scarlet fungi growing in mossy crevice, interior surface smooth and glossy. Single, isolated critter with the creatures only , no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+ 
+
+---  
+**6. Fallen Logs**  
+1. **Moss-Covered Log**: A 2D pixel art style game asset of a decaying log lying horizontally on a forest floor, covered in lush green moss. Single, isolated item, no other stuffs. Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+2. **Hollow Nursery Log**:A 2D pixel art style game asset of a hollow log with cavernous interior.  Pure white background. Clear outline with black contour line. Detailed and intact plant anatomy.
+
+3. **Sap-Seeping Log**: Freshly fallen pine trunk oozing amber resin, bubbles trapped in sticky droplets, wood grain still distinct.  
+4. **Burnt Snag**:A 2D pixel art style game asset of a charred log with ashy white exterior, deep cracks revealing red embers within.  Pure white background. Clear outline with black contour line. Detailed and realistic plant anatomy.
+
+5. **Flower-Adorned Log**: A 2D pixel art style game asset of a old tree trunk with no leaves but branches only, wrapped by creeping ivy and wild violets.  Pure white background. Clear outline with black contour line. Detailed and realistic plant anatomy.
+
+
+
+---  
+**7. Ground Cover**  
+1. **Leaf Litter**: Multilayered carpet of decaying leaves in ochre, umber, and sienna, veined patterns preserved in crisp detail.  
+2. **Wild Strawberry Patch**: Tiny white flowers among trios of serrated leaves, plump red berries nestled in foliage.  
+3. **Nettle Thicket**: Tall spiky plants with jagged heart-shaped leaves, fine hairs casting microscopic glints of light.  
+4. **Harebell Cluster**: Delicate blue bell-shaped flowers on wiry stems, nodding in an imagined breeze, roots gripping rocky soil.  
+5. **Wolf Lichen**: Crusty yellow-green lichen spreading across rocks and roots, branching patterns resembling tiny forests.  
