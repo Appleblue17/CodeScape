@@ -163,6 +163,8 @@ window.setup = function setup() {
       ready = true;
       console.log("All WebSocket connections are open.");
       drawScene();
+      // Start the continuous animation loop for auto-scrolling
+      setInterval(autoScroll, scrollInterval);
     } else {
       setTimeout(checkAndDrawScene, 100);
     }
@@ -230,21 +232,6 @@ function gotSpeech() {
   }
 }
 
-/**
- * Handle keyboard input to control camera movement
- * - Left arrow key: Move camera left
- * - Right arrow key: Move camera right
- */
-window.keyPressed = function keyPressed() {
-  if (!ready) return;
-  if (keyCode === LEFT_ARROW) {
-    cameraX -= 30; // Move camera left
-  } else if (keyCode === RIGHT_ARROW) {
-    cameraX += 30; // Move camera right
-  }
-  drawScene();
-};
-
 // Canvas dimension constants
 const ASCIIWidth = 504,
   ASCIIHeight = 146;
@@ -252,10 +239,32 @@ let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 
 let cameraX = 100; // Camera position in the X direction
+const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
+const scrollInterval = 200; // Time between scroll updates (milliseconds)
 const terrainPages = [],
   spritePages = []; // Store generated sprite in previous pages
 let pageStart = 0,
   pageEnd = -1; // Start and end indices for sprite pages
+
+/**
+ * Auto-scrolling function - continuously updates camera position
+ * and redraws the scene
+ */
+function autoScroll() {
+  if (!ready) return;
+  cameraX += scrollSpeed; // Move camera to the right automatically
+  if (cameraX > mapWidth * 30) {
+    cameraX *= -1;
+    socket.send(
+      JSON.stringify({
+        type: "output",
+        content:
+          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
+      })
+    );
+  }
+  drawScene();
+}
 
 /**
  * Main rendering function - draws the ASCII landscape scene
@@ -295,39 +304,39 @@ function drawScene() {
     });
     socket.send(asciiContent);
 
-    // For testing the terminal UI - these lines send test messages
-    // to see how the terminal overlay works with the ASCII display
+    // // For testing the terminal UI - these lines send test messages
+    // // to see how the terminal overlay works with the ASCII display
 
-    // Test tentative input (as if user is speaking)
-    setTimeout(() => {
-      socket.send(
-        JSON.stringify({
-          type: "input",
-          content: "Exploring the landscape...",
-        })
-      );
-    }, 1000);
+    // // Test tentative input (as if user is speaking)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "input",
+    //       content: "Exploring the landscape...",
+    //     })
+    //   );
+    // }, 1000);
 
-    // Test confirmed input (after user finishes speaking)
-    setTimeout(() => {
-      socket.send(
-        JSON.stringify({
-          type: "input_confirm",
-          content: "Show me what's beyond that mountain",
-        })
-      );
-    }, 2000);
+    // // Test confirmed input (after user finishes speaking)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "input_confirm",
+    //       content: "Show me what's beyond that mountain",
+    //     })
+    //   );
+    // }, 2000);
 
-    // Test system output (response to user)
-    setTimeout(() => {
-      socket.send(
-        JSON.stringify({
-          type: "output",
-          content:
-            "Beyond the mountains lies a mysterious fungi forest. Would you like to explore it?",
-        })
-      );
-    }, 3000);
+    // // Test system output (response to user)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "output",
+    //       content:
+    //         "Beyond the mountains lies a mysterious fungi forest. Would you like to explore it?",
+    //     })
+    //   );
+    // }, 3000);
   }
 }
 
