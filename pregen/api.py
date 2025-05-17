@@ -190,7 +190,6 @@ if __name__ == "__main__":
      #   generate_clip(prompt, seed, workflowfile, idx)
       #  idx += 1
     #生成图像并显示
-    
     while True:
         prompt = input("请输入提示词：")
         if prompt == "exit":
