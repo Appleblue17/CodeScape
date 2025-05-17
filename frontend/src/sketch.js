@@ -13,6 +13,8 @@ import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./spr
 import { capitalize, medianFilter, randomShuffle } from "./util.js";
 import forestSpriteList from "./sprite_list/forest.js";
 import fungiSpriteList from "./sprite_list/fungi.js";
+import mountainSpriteList from "./sprite_list/mountain.js";
+import iceSpriteList from "./sprite_list/ice.js";
 
 // Global variables
 export let font; // Font used for rendering ASCII characters
@@ -33,7 +35,12 @@ let genPicModeOn = false; // Flag to indicate if picture generation mode is acti
 window.preload = function preload() {
   font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
   pixelDensity(1);
-  for (let sprite of [...forestSpriteList, ...fungiSpriteList]) {
+  for (let sprite of [
+    ...forestSpriteList,
+    ...fungiSpriteList,
+    ...mountainSpriteList,
+    ...iceSpriteList,
+  ]) {
     sprite.loadedImg = loadImage(
       sprite.img,
       // Success callback - called when the image is fully loaded
@@ -52,19 +59,32 @@ window.preload = function preload() {
       }
     );
   }
-  const extentedForestSpriteList = [],
-    extendedFungiSpriteList = [];
+  const extendedForestSpriteList = [],
+    extendedFungiSpriteList = [],
+    extendedMountainSpriteList = [],
+    extendedIceSpriteList = [];
   for (let sprite of forestSpriteList) {
-    for (let i = 0; i < 10; i++) extentedForestSpriteList.push(sprite);
+    for (let i = 0; i < 10; i++) extendedForestSpriteList.push(sprite);
   }
   for (let sprite of fungiSpriteList) {
     for (let i = 0; i < 10; i++) extendedFungiSpriteList.push(sprite);
   }
+  for (let sprite of mountainSpriteList) {
+    for (let i = 0; i < 10; i++) extendedMountainSpriteList.push(sprite);
+  }
+  for (let sprite of iceSpriteList) {
+    for (let i = 0; i < 10; i++) extendedIceSpriteList.push(sprite);
+  }
 
-  randomShuffle(extentedForestSpriteList);
+  randomShuffle(extendedForestSpriteList);
   randomShuffle(extendedFungiSpriteList);
-  spriteRollList["forest"] = extentedForestSpriteList;
+  randomShuffle(extendedMountainSpriteList);
+  randomShuffle(extendedIceSpriteList);
+
+  spriteRollList["forest"] = extendedForestSpriteList;
   spriteRollList["fungi"] = extendedFungiSpriteList;
+  spriteRollList["mountain"] = extendedMountainSpriteList;
+  spriteRollList["ice"] = extendedIceSpriteList;
 };
 
 /**
@@ -75,8 +95,7 @@ window.setup = function setup() {
   //socket_img = new WebSocket("ws://localhost:8081");
   socket_llm = new WebSocket("ws://localhost:8082");
 
-  // Set canvas to have much more space for the giant buttons
-  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
+  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
 
   socket.onopen = function () {
     console.log("WebSocket 8080 (backend) is open now.");
@@ -84,22 +103,20 @@ window.setup = function setup() {
   };
 
   // Initialize the WebSocket connection for image processing
-  socket_img.onopen = function () {
-    console.log("WebSocket 8081 for image processing is open now.");
-  }
+  //socket_img.onopen = function () {
+  //  console.log("WebSocket 8081 for image processing is open now.");
+  //}
   
-  socket_img.onclose = function () {
-    console.error("WebSocket connection closed. Reconnecting...");
-  setTimeout(() => {
-    socket_img = new WebSocket("ws://localhost:8081");
-  }, 1000); // 尝试在 1 秒后重新连接
-  };
+  //socket_img.onclose = function () {
+  //  console.error("WebSocket connection closed. Reconnecting...");
+  //setTimeout(() => {
+  //  socket_img = new WebSocket("ws://localhost:8081");
+  //}, 1000); // 尝试在 1 秒后重新连接
+  //};
 
-  socket_img.onerror = function (error) {
-    console.error("WebSocket error for Picture Generation:", error);
-  };
-  
-  
+  // socket_img.onerror = function (error) {
+  //   console.error("WebSocket error for Picture Generation:", error);
+  // };
 
   // Initialize the WebSocket connection for LLM processing
   socket_llm.onopen = function () {
@@ -146,16 +163,18 @@ window.setup = function setup() {
       ready = true;
       console.log("All WebSocket connections are open.");
       drawScene();
+      // Start the continuous animation loop for auto-scrolling
+      setInterval(autoScroll, scrollInterval);
     } else {
       setTimeout(checkAndDrawScene, 100);
     }
   }
   checkAndDrawScene();
 
-  for (let i = -20; i <= 20; i++) {
-    // console.log(i, getTemperature(i * ASCIIWidth));
-    console.log(i, getBiomeType(i * ASCIIWidth));
-  }
+  // for (let i = -20; i <= 20; i++) {
+  //   // console.log(i, getTemperature(i * ASCIIWidth));
+  //   console.log(i, getBiomeType(i * ASCIIWidth));
+  // }
 };
 
 function gotSpeech() {
@@ -170,7 +189,6 @@ function gotSpeech() {
 
     // send the recognized text to the backend server
     if (speechRec.resultString == "picture generation mode.") {
-      // if the recieved information asks to generate a picture:
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
       return;
@@ -214,33 +232,39 @@ function gotSpeech() {
   }
 }
 
-/**
- * Handle keyboard input to control camera movement
- * - Left arrow key: Move camera left
- * - Right arrow key: Move camera right
- */
-window.keyPressed = function keyPressed() {
-  if (!ready) return;
-  if (keyCode === LEFT_ARROW) {
-    cameraX -= 10; // Move camera left
-  } else if (keyCode === RIGHT_ARROW) {
-    cameraX += 10; // Move camera right
-  }
-  console.log("camera", cameraX);
-  drawScene();
-};
-
 // Canvas dimension constants
-const ASCIIWidth = 640,
-  ASCIIHeight = 144;
+const ASCIIWidth = 504,
+  ASCIIHeight = 146;
 let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 
 let cameraX = 100; // Camera position in the X direction
+const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
+const scrollInterval = 200; // Time between scroll updates (milliseconds)
 const terrainPages = [],
   spritePages = []; // Store generated sprite in previous pages
 let pageStart = 0,
   pageEnd = -1; // Start and end indices for sprite pages
+
+/**
+ * Auto-scrolling function - continuously updates camera position
+ * and redraws the scene
+ */
+function autoScroll() {
+  if (!ready) return;
+  cameraX += scrollSpeed; // Move camera to the right automatically
+  if (cameraX > mapWidth * 30) {
+    cameraX *= -1;
+    socket.send(
+      JSON.stringify({
+        type: "output",
+        content:
+          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
+      })
+    );
+  }
+  drawScene();
+}
 
 /**
  * Main rendering function - draws the ASCII landscape scene
@@ -273,14 +297,53 @@ function drawScene() {
   // }
 
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
+    // Send ASCII art content
+    const asciiContent = JSON.stringify({
+      type: "ascii",
+      content: ASCIICanvas.map((row) => row.join("")).join("\n"),
+    });
+    socket.send(asciiContent);
+
+    // // For testing the terminal UI - these lines send test messages
+    // // to see how the terminal overlay works with the ASCII display
+
+    // // Test tentative input (as if user is speaking)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "input",
+    //       content: "Exploring the landscape...",
+    //     })
+    //   );
+    // }, 1000);
+
+    // // Test confirmed input (after user finishes speaking)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "input_confirm",
+    //       content: "Show me what's beyond that mountain",
+    //     })
+    //   );
+    // }, 2000);
+
+    // // Test system output (response to user)
+    // setTimeout(() => {
+    //   socket.send(
+    //     JSON.stringify({
+    //       type: "output",
+    //       content:
+    //         "Beyond the mountains lies a mysterious fungi forest. Would you like to explore it?",
+    //     })
+    //   );
+    // }, 3000);
   }
 }
 
 function getTemperature(offset) {
   const x = offset / ASCIIWidth;
-  const temp = -273.15 + Math.exp((-x * x) / 3600) * 300;
-  const randomTemp = random() * 10;
+  const temp = -273.15 + Math.exp((-x * x) / 100) * 300;
+  const randomTemp = noise(x) * 10;
   return Math.max(temp + randomTemp, -273.15);
 }
 
@@ -291,7 +354,7 @@ function getBiomeType(offset) {
   } else {
     let e = noise(offset / 2 + 20);
     if (e < 0.4) {
-      return "fungi";
+      return "mountain";
     } else if (e < 0.7) {
       return "forest";
     } else {
@@ -308,6 +371,7 @@ function getBiomeType(offset) {
  */
 function generateTerrain(terrain, offset) {
   const biomeType = getBiomeType(offset);
+  const temp = getTemperature(offset);
 
   if (biomeType === "forest") {
     for (let y = 0; y < mapHeight; y++) {
@@ -317,7 +381,7 @@ function generateTerrain(terrain, offset) {
       }
     }
     medianFilter(terrain, 10);
-  } else if (biomeType === "hill") {
+  } else if (biomeType === "fungi") {
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         let e = noise((x + offset) / 50, y / 50) * 10;
@@ -333,6 +397,18 @@ function generateTerrain(terrain, offset) {
       }
     }
     medianFilter(terrain, 8);
+
+    for (let t = 0; t < 30; t++) {
+      const x0 = floor(random(0, mapWidth));
+      const y0 = floor(random(0, mapHeight));
+      const h = terrain[y0][x0] + floor(random(3, 8));
+      for (let y = y0; y <= y0 + 1; y++) {
+        for (let x = x0 - 1; x <= x0 + 1; x++) {
+          if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) continue;
+          terrain[y][x] = h;
+        }
+      }
+    }
   } else if (biomeType === "mountain") {
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
@@ -349,6 +425,28 @@ function generateTerrain(terrain, offset) {
       }
     }
     medianFilter(terrain, 5);
+  } else if (biomeType === "ice") {
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise((x + offset) / 50, y / 50) * 10;
+        terrain[y][x] = ceil(e);
+      }
+    }
+    medianFilter(terrain, 10);
+
+    const lim = map(temp, 0, -273, 0, 15, true);
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        let e = noise((x + offset) / 5 + 3, y / 5 + 3) * 60;
+        if (e >= 40) terrain[y][x] += ceil((e - 40) * lim);
+      }
+    }
+
+    for (let t = 0; t < 30; t++) {
+      const x0 = floor(random(0, mapWidth));
+      const y0 = floor(random(0, mapHeight));
+      terrain[y0][x0] = 0;
+    }
   }
 }
 
@@ -369,6 +467,7 @@ function generateSpritePosition(terrain, sprites, offset) {
   let minDist = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
   let occupied = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
   const biomeType = getBiomeType(offset);
+  const temp = getTemperature(offset);
 
   const getHeight = (x, y) => {
     x -= xmin;
@@ -419,10 +518,20 @@ function generateSpritePosition(terrain, sprites, offset) {
     }
   };
 
+  let coef = 1;
+  if (biomeType === "forest") {
+    coef = map(temp, 0, 30, 0, 1, true);
+  } else if (biomeType === "fungi") {
+    coef = map(temp, 0, 30, 0.2, 1, true);
+  } else if (biomeType === "ice") {
+    coef = map(temp, 0, -273, 1, 0.2, true);
+  }
+
+  spriteRollIndex %= spriteRollList[biomeType].length;
   for (let t = 0; t < gridPermutation.length; t++) {
     const { x, y } = gridPermutation[t];
     if (occupied[y][x - xmin]) continue;
-    const density = noise(x / 50, y / 50);
+    const density = noise(x / 50, y / 50) * coef;
     if (random() < density) {
       let attempt = 0;
       while (attempt < 10) {
@@ -440,7 +549,6 @@ function generateSpritePosition(terrain, sprites, offset) {
 }
 
 function extendPages(direction) {
-  console.log("extend", direction);
   if (direction === 0) {
     // Extend to the left
     terrainPages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0)));
