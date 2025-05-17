@@ -1,0 +1,67 @@
+**Cloud Shape Prompts**  
+
+1. cloud, Fluffy cotton-like clusters, rounded edges and soft, billowing contours.  
+2. cloud, Feathery high-altitude streaks forming delicate parallel bands across the sky.  
+3. cloud, Rolling layered banks with flat bases and gently undulating upper surfaces.  
+4. cloud, Towering anvil-shaped formations with broad, flat tops and turbulent, cauliflower-like undersides.  
+5. cloud, Wispy scattered patches resembling stretched cotton fibers, thin and semi-transparent.
+6. cloud, Puffy Cumulus, A cluster of dense, cotton-like clouds with rounded tops and flat bases, forming small to medium-sized floating mounds.  
+7. cloud, Wispy Cirrus, Thin, feathery streaks of high-altitude ice crystals, stretched into delicate, elongated shapes by strong winds.  
+8. cloud, Layered Stratus, A uniform horizontal sheet of low-lying clouds blanketing the sky in a smooth, featureless gray layer.  
+9. cloud, Lenticular Lens, Smooth, oval-shaped cloud resembling a UFO, stationary over mountainous terrain with sharply defined edges.  
+10. cloud, Mammatus Pouches, Bulbous, sagging pouch-like structures hanging from a storm cloud’s base, forming a bumpy, inverted landscape.  
+
+---
+
+**Mountain Peaks Biome Sprites**  
+  
+**1. Rock Formations**  
+1. **Lichen-Covered Boulder**: A 2D pixel art style game asset of a A massive granite boulder mottled with chartreuse and rust-colored lichen, deep fissures filled with windblown snow, jagged edges softened by centuries of erosion.   Single, isolated object with the item only, no other stuffs. Pure white background.
+
+2. **Frost-Shattered Cliff Face**:A 2D pixel art style game asset of a grey colored Vertical rock wall fractured into angular shards, ice-glued seams glittering under sunlight, shadowed crevices hiding pockets of perpetual snow. Single, isolated object with the item only, no other stuffs. Pure white background.
+ 
+❌3. **Basalt Column Cluster**:A 2D pixel art style game asset of a  Basalt Column Cluster, jutting upward, rain-streaked surfaces stained with iron oxide, crumbling tops hosting hawk nests.  Single, isolated object with the item only, no other stuffs. Pure white background.
+ 
+4. **Slate Scree Slope**: A 2D pixel art style game asset of a Slate Scree Slope, featuring Thousands of flat gray rock fragments cascading down a steep incline, sharp edges catching the light, scattered alpine flowers clinging to stable pockets. Single, isolated object with the item only, no other stuffs. Pure white background.
+
+❌5. **Copper Carbonate Patina**:A 2D pixel art style game asset of a Turquoise-green mineral bloom spreading across weathered sandstone, powdery texture staining touch.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+❌6. **Mica Schist Sheet**: A 2D pixel art style game asset of a Mica Schist Sheet glittering with silver flecks, edges delaminating like pages of a stone book.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+7. **Quartzite Sentinel**: A 2D pixel art style game asset of a Quartzite Sentinel glowing faintly at dawn, internal fractures trapping morning light.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+
+**. Alpine Flora**  
+1. **Edelweiss Cluster**: A 2D pixel art style game asset of a Edelweiss Cluster, featuring Fuzzy white star-shaped flowers nestled in rock clusters, silver-green leaves hugging the ground to resist icy winds.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+❌2. **Cushion Moss**:A 2D pixel art style game asset of Moss, with tiny yellow flowers peeking through frost-resistant fibers.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+4. **Glacier Lily**:A 2D pixel art style game asset of a Glacier Lily, featuring Bright yellow bell-shaped flowers emerging from the ground covered by sparsed melted snow, waxy leaves edged with crimson from UV stress.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+5. **Stonecrop Succulent**: A 2D pixel art style game asset of a Stonecrop Succulent, featuring Rosettes of fleshy blue-green leaves storing water, starry pink blooms attracting high-altitude moths.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+
+---
+
+**Eternal Frost Wastes Biome Sprites**  
+
+1. **Aurora-Refracting Prism**: A 2D pixel art style game asset of a Towering ice column striated with trapped air bubbles,Narrow at the top with a pointed top and wide at the bottom, in rather natural shape with a bit of randomness in growth pattern, fractures splitting sunlight into spectral rainbows, base buried in wind-packed snow.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+❌2. **Black Ice Shard**: A 2D pixel art style game asset of a Jet-black opaque ice formation with knife-sharp edges, surface pitted by abrasive snowstorms, casting stark shadows on white ground.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+3. **Wind-Faceted Obelisk**: A 2D pixel art style game asset of a  Wind-Faceted Obelisk， featuring Leaning ice structure polished into smooth geometric planes by katabatic winds, faint etchings resembling frozen whirlpools.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+4. **Hoarfrost Monolith**: A 2D pixel art style game asset of a Hoarfrost Monolith, featuring Delicate feather-like ice crystals coating every surface, fragile outer layer shimmering under moonlight, internal structure glowing faint blue.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+5. **Pressure Ridge**:A 2D pixel art style game asset of a Pressure Ridge, featuring Jagged line of upthrust ice slabs formed by tectonic forces, razor-edged plates overlapping like frozen dragon scales.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+6. **Avalanche Debris**:A 2D pixel art style game asset of a Avalanche Debris, featuring Chaotic jumble of ice and compacted snow disorderly piled up together. Single, isolated object with the item only, no other stuffs. Pure white background.
+
+7. **Frost Bloom**:A 2D pixel art style game asset of a Frost Bloom, featuring Circular ice flowers formed by moisture sublimating through snow, intricate dendritic patterns radiating from central stems. Single, isolated object with the item only, no other stuffs. Pure white background.
+
+8. **Time-Lost Cairn**: A 2D pixel art style game asset of a Time-Lost Cairn, featuring Stacked stones untouched by erosion, frost patterns suggesting impossible age. Single, isolated object with the item only, no other stuffs. Pure white background.
+
+❌9. **Ice-Welded Conglomerate**:A 2D pixel art style game asset of a Ice-Welded Conglomerate, featuring Pebbles and boulders fused together by millennia of melt-refreeze cycles, glacial cement binding them into surreal sculptures.  Single, isolated object with the item only, no other stuffs. Pure white background.
+
+10. **Frost-Heaved Megalith**: A 2D pixel art style game asset of a Frost-Heaved Megalith， featuring  Tilted stone slab lifted vertically by permafrost expansion, base encased in layered ice rings.  Single, isolated object with the item only, no other stuffs. Pure white background.
+

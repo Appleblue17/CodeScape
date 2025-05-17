@@ -72,7 +72,7 @@ window.preload = function preload() {
  */
 window.setup = function setup() {
   socket = new WebSocket("ws://localhost:8080");
-  socket_img = new WebSocket("ws://localhost:8081");
+  //socket_img = new WebSocket("ws://localhost:8081");
   socket_llm = new WebSocket("ws://localhost:8082");
 
   createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
@@ -84,10 +84,9 @@ window.setup = function setup() {
 
   // Initialize the WebSocket connection for image processing
   //socket_img.onopen = function () {
-  //  console.log("WebSocket 8081 (image processing) is open now.");
-  //  socket_imgReady = true;
+  //  console.log("WebSocket 8081 for image processing is open now.");
   //}
-
+  
   //socket_img.onclose = function () {
   //  console.error("WebSocket connection closed. Reconnecting...");
   //setTimeout(() => {
@@ -95,9 +94,11 @@ window.setup = function setup() {
   //}, 1000); // 尝试在 1 秒后重新连接
   //};
 
-  //socket_img.onerror = function (error) {
-  //  console.error("WebSocket error for Picture Generation:", error);
-  //};
+  socket_img.onerror = function (error) {
+    console.error("WebSocket error for Picture Generation:", error);
+  };
+  
+  
 
   // Initialize the WebSocket connection for LLM processing
   // socket_llm.onopen = function () {
