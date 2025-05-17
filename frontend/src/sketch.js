@@ -75,8 +75,7 @@ window.setup = function setup() {
   socket_img = new WebSocket("ws://localhost:8081");
   socket_llm = new WebSocket("ws://localhost:8082");
 
-  // Set canvas to have much more space for the giant buttons
-  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16); // Significantly increased from +110
+  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
 
   socket.onopen = function () {
     console.log("WebSocket 8080 (backend) is open now.");
@@ -151,10 +150,10 @@ window.setup = function setup() {
   }
   checkAndDrawScene();
 
-  for (let i = -20; i <= 20; i++) {
-    // console.log(i, getTemperature(i * ASCIIWidth));
-    console.log(i, getBiomeType(i * ASCIIWidth));
-  }
+  // for (let i = -20; i <= 20; i++) {
+  //   // console.log(i, getTemperature(i * ASCIIWidth));
+  //   console.log(i, getBiomeType(i * ASCIIWidth));
+  // }
 };
 
 function gotSpeech() {
@@ -169,7 +168,6 @@ function gotSpeech() {
 
     // send the recognized text to the backend server
     if (speechRec.resultString == "picture generation mode.") {
-      // if the recieved information asks to generate a picture:
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
       return;
@@ -230,8 +228,8 @@ window.keyPressed = function keyPressed() {
 };
 
 // Canvas dimension constants
-const ASCIIWidth = 640,
-  ASCIIHeight = 144;
+const ASCIIWidth = 504,
+  ASCIIHeight = 146;
 let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 
@@ -272,7 +270,46 @@ function drawScene() {
   // }
 
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(ASCIICanvas.map((row) => row.join("")).join("\n"));
+    // Send ASCII art content
+    const asciiContent = JSON.stringify({
+      type: "ascii",
+      content: ASCIICanvas.map((row) => row.join("")).join("\n"),
+    });
+    socket.send(asciiContent);
+
+    // For testing the terminal UI - these lines send test messages
+    // to see how the terminal overlay works with the ASCII display
+
+    // Test tentative input (as if user is speaking)
+    setTimeout(() => {
+      socket.send(
+        JSON.stringify({
+          type: "input",
+          content: "Exploring the landscape...",
+        })
+      );
+    }, 1000);
+
+    // Test confirmed input (after user finishes speaking)
+    setTimeout(() => {
+      socket.send(
+        JSON.stringify({
+          type: "input_confirm",
+          content: "Show me what's beyond that mountain",
+        })
+      );
+    }, 2000);
+
+    // Test system output (response to user)
+    setTimeout(() => {
+      socket.send(
+        JSON.stringify({
+          type: "output",
+          content:
+            "Beyond the mountains lies a mysterious fungi forest. Would you like to explore it?",
+        })
+      );
+    }, 3000);
   }
 }
 
@@ -316,7 +353,7 @@ function generateTerrain(terrain, offset) {
       }
     }
     medianFilter(terrain, 10);
-  } else if (biomeType === "hill") {
+  } else if (biomeType === "fungi") {
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         let e = noise((x + offset) / 50, y / 50) * 10;
