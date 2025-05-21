@@ -15,6 +15,7 @@ import forestSpriteList from "./sprite_list/forest.js";
 import fungiSpriteList from "./sprite_list/fungi.js";
 import mountainSpriteList from "./sprite_list/mountain.js";
 import iceSpriteList from "./sprite_list/ice.js";
+import animalSpriteList from "./sprite_list/animal.js";
 
 // Global variables
 export let font; // Font used for rendering ASCII characters
@@ -25,6 +26,10 @@ let socket_llm, socket_llmReady; // WebSocket connection for sending LLM request
 let speechRec; // Speech recognition object for voice commands
 let chatModeOn = false; // Flag to indicate if chat mode is active
 let genPicModeOn = false; // Flag to indicate if picture generation mode is active
+let direction;
+let snowModeOn = false;
+let snowflakes = [];
+const SNOWFLAKE_COUNT = 100; // 雪点数量，可调整
 
 /**
  * Preload assets before setup
@@ -92,7 +97,7 @@ window.preload = function preload() {
  */
 window.setup = function setup() {
   socket = new WebSocket("ws://localhost:8080");
-  //socket_img = new WebSocket("ws://localhost:8081");
+  socket_img = new WebSocket("ws://localhost:8081");
   socket_llm = new WebSocket("ws://localhost:8082");
 
   createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
@@ -103,20 +108,20 @@ window.setup = function setup() {
   };
 
   // Initialize the WebSocket connection for image processing
-  //socket_img.onopen = function () {
-  //  console.log("WebSocket 8081 for image processing is open now.");
-  //}
+  socket_img.onopen = function () {
+    console.log("WebSocket 8081 for image processing is open now.");
+  }
   
-  //socket_img.onclose = function () {
-  //  console.error("WebSocket connection closed. Reconnecting...");
-  //setTimeout(() => {
-  //  socket_img = new WebSocket("ws://localhost:8081");
-  //}, 1000); // 尝试在 1 秒后重新连接
-  //};
+  socket_img.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+  setTimeout(() => {
+  socket_img = new WebSocket("ws://localhost:8081");
+  }, 1000); // 尝试在 1 秒后重新连接
+  };
 
-  // socket_img.onerror = function (error) {
-  //   console.error("WebSocket error for Picture Generation:", error);
-  // };
+   socket_img.onerror = function (error) {
+     console.error("WebSocket error for Picture Generation:", error);
+  };
 
   // Initialize the WebSocket connection for LLM processing
   socket_llm.onopen = function () {
@@ -135,9 +140,17 @@ window.setup = function setup() {
 
    // real-time handling of LLM responses
   socket_llm.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    console.log("Received LLM response:", data.response);
-  };
+  const data = JSON.parse(event.data);
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(
+      JSON.stringify({
+        type: "output",
+        content: data.response,
+      })
+    );
+  }
+  console.log("Received LLM response:", data.response);
+};
 
   noiseSeed(0);
   // check for the loading of the p5.SpeechRec library
@@ -170,7 +183,7 @@ window.setup = function setup() {
     }
   }
   checkAndDrawScene();
-
+  animationLoop();
   // for (let i = -20; i <= 20; i++) {
   //   // console.log(i, getTemperature(i * ASCIIWidth));
   //   console.log(i, getBiomeType(i * ASCIIWidth));
@@ -178,30 +191,62 @@ window.setup = function setup() {
 };
 
 function gotSpeech() {
-  if (!ready) return;
+  //if (!ready) return;
   console.log("gotSpeech called");
   if (speechRec.resultValue) {
     // output the recognized text to the console
     console.log(speechRec.resultString);
     // Turn the result string into a lowercase string
-    const result = speechRec.resultString.toLowerCase();
+    let result = speechRec.resultString
+    result = result.toLowerCase();
+    // Remove all the punctuation from the string, such as ?, !, ., etc.
+    result = result.replace(/[.,\/#!$%?\^&\*;:{}=\-_`~()]/g, "");
     console.log("result: " + result);
 
-    // send the recognized text to the backend server
-    if (speechRec.resultString == "picture generation mode.") {
+    // 1. 用户输入显示到 terminal
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "input_confirm",
+          content: speechRec.resultString,
+        })
+      );
+    }
+
+    // 2. 窗口移动
+    if (result == "move left"){
+      direction = "left";
+      console.log("Moving left");
+      return;
+    }
+    if (result == "move right"){
+      direction = "right";
+      console.log("Moving right");
+      return;
+    }
+    if (result == "stop moving"){
+      direction = "stop";
+      console.log("Stop moving");
+      return;
+    }
+
+    // 3. 图片生成模式
+    if (result == "picture generation mode") {
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
       return;
-    } else if (result == "exit picture generation mode.") {
+    } else if (result == "exit picture generation mode") {
       genPicModeOn = false;
       console.log("Picture Generation Mode Off");
       return;
-    } else if (result == "chat mode.") {
+    } 
+    // 4. 聊天模式
+    else if (result == "chat mode") {
       // if the recieved information asks to chat:
       console.log("Chat Mode On");
       chatModeOn = true;
       return;
-    } else if (result == "exit chat mode.") {
+    } else if (result == "exit chat mode") {
       // if the recieved information asks to exit chat mode:
       console.log("Chat Mode Off");
       chatModeOn = false;
@@ -210,10 +255,10 @@ function gotSpeech() {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
     }
 
+    // 传递语音识别结果给后端服务器
     if (chatModeOn && genPicModeOn == false) {
       // if the chat mode is on, send the recognized text to the backend server
       if (socket_llm.readyState === WebSocket.OPEN) {
-        console.log("Chatting with LLM");
         const message = JSON.stringify({ text: speechRec.resultString });
         socket_llm.send(message);
       } else {
@@ -251,8 +296,19 @@ let pageStart = 0,
  * and redraws the scene
  */
 function autoScroll() {
-  if (!ready) return;
-  cameraX += scrollSpeed; // Move camera to the right automatically
+  //if (!ready) return;
+  switch(direction){
+    case "left":
+      cameraX -= scrollSpeed;
+      break;
+    case "right":
+      cameraX += scrollSpeed;
+      break;
+    case "stop":
+    default:
+      // 不动
+      break;
+  }
   if (cameraX > mapWidth * 30) {
     cameraX *= -1;
     socket.send(
@@ -263,7 +319,49 @@ function autoScroll() {
       })
     );
   }
+  if (cameraX < -mapWidth * 30) {
+    cameraX *= -1;
+    socket.send(
+      JSON.stringify({
+        type: "output",
+        content:
+          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
+      })
+    );
+  }
   drawScene();
+}
+
+// 持续刷新
+function animationLoop() {
+  drawScene();
+  requestAnimationFrame(animationLoop);
+}
+
+// 动态加载动物素材的函数
+function loadAnimalSprites(keyword) {
+  // keyword: 例如 "squirrel" 或 "frog"
+  const lowerKeyword = keyword.toLowerCase();
+  for (let sprite of animalSpriteList) {
+    if (
+      sprite.name.toLowerCase().includes(lowerKeyword) &&
+      !sprite.loadedImg
+    ) {
+      sprite.loadedImg = loadImage(
+        sprite.img,
+        (img) => {
+          console.log("Animal loaded: " + sprite.name);
+          img.filter(GRAY);
+          img.filter(INVERT);
+          sprite.edgeImg = generateSpriteEdge(img, sprite.width, sprite.height);
+          sprite.fillImg = generateSpriteFilling(img, sprite.width, sprite.height);
+        },
+        () => {
+          console.log("Error loading animal: " + sprite.name);
+        }
+      );
+    }
+  }
 }
 
 /**
@@ -308,35 +406,28 @@ function drawScene() {
     // // to see how the terminal overlay works with the ASCII display
 
     // // Test tentative input (as if user is speaking)
-    // setTimeout(() => {
-    //   socket.send(
-    //     JSON.stringify({
-    //       type: "input",
-    //       content: "Exploring the landscape...",
-    //     })
-    //   );
-    // }, 1000);
+     
+  }
 
-    // // Test confirmed input (after user finishes speaking)
-    // setTimeout(() => {
-    //   socket.send(
-    //     JSON.stringify({
-    //       type: "input_confirm",
-    //       content: "Show me what's beyond that mountain",
-    //     })
-    //   );
-    // }, 2000);
-
-    // // Test system output (response to user)
-    // setTimeout(() => {
-    //   socket.send(
-    //     JSON.stringify({
-    //       type: "output",
-    //       content:
-    //         "Beyond the mountains lies a mysterious fungi forest. Would you like to explore it?",
-    //     })
-    //   );
-    // }, 3000);
+  // 下雪效果
+  if (snowModeOn) {
+    for (let flake of snowflakes) {
+      // 在画布上绘制雪点
+      if (
+        flake.y >= 0 &&
+        flake.y < ASCIICanvas.length &&
+        flake.x >= 0 &&
+        flake.x < ASCIICanvas[0].length
+      ) {
+        ASCIICanvas[Math.floor(flake.y)][Math.floor(flake.x)] = ".";
+      }
+      // 雪点下落
+      flake.y += flake.speed;
+      if (flake.y >= ASCIIHeight) {
+        flake.y = 0;
+        flake.x = Math.floor(Math.random() * ASCIIWidth);
+      }
+    }
   }
 }
 
