@@ -525,7 +525,6 @@ function generateTerrain(terrain, offset) {
   }
 }
 
-const spriteRollList = {}; // Weighted list for random sprite selection
 let spriteRollIndex = 0; // Current position in the sprite selection list
 
 /**
