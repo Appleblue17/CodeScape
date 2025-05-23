@@ -9,8 +9,17 @@
  */
 
 //import { text } from "body-parser";
-import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
-import { capitalize, medianFilter, randomShuffle } from "./util.js";
+import { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
+import { randomShuffle } from "./util.js";
+import {
+  refreshPages,
+  getTerrain,
+  getSpritePosition,
+  getTemperature,
+  getBiomeType,
+} from "./index.js";
+import renderScreen from "./renderScreen.js";
+
 import forestSpriteList from "./sprite_list/forest.js";
 import fungiSpriteList from "./sprite_list/fungi.js";
 import mountainSpriteList from "./sprite_list/mountain.js";
@@ -18,7 +27,6 @@ import iceSpriteList from "./sprite_list/ice.js";
 import animalSpriteList from "./sprite_list/animal.js";
 
 // Global variables
-export let font; // Font used for rendering ASCII characters
 let ready;
 let socket, socketReady; // WebSocket connection for sending rendered ASCII art
 let socket_img, socket_imgReady; // WebSocket connection for sending rendered images
@@ -26,10 +34,24 @@ let socket_llm, socket_llmReady; // WebSocket connection for sending LLM request
 let speechRec; // Speech recognition object for voice commands
 let chatModeOn = false; // Flag to indicate if chat mode is active
 let genPicModeOn = false; // Flag to indicate if picture generation mode is active
-let direction;
-let snowModeOn = false;
+let direction = "right";
+
+let snowModeOn = true;
 let snowflakes = [];
-const SNOWFLAKE_COUNT = 100; // 雪点数量，可调整
+
+const spriteRollList = {}; // Weighted list for random sprite selection
+export { spriteRollList };
+
+// Canvas dimension constants
+const ASCIIWidth = 504,
+  ASCIIHeight = 146;
+let ymax, xmin, xmax; // Coordinate boundaries for the terrain
+let mapWidth, mapHeight; // Dimensions of the terrain map
+export { ASCIIWidth, ASCIIHeight, mapWidth, mapHeight, xmin, xmax, ymax };
+
+let cameraX = 0; // Camera position in the X direction
+const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
+const scrollInterval = 150; // Time between scroll updates (milliseconds)
 
 /**
  * Preload assets before setup
@@ -38,7 +60,6 @@ const SNOWFLAKE_COUNT = 100; // 雪点数量，可调整
  * - Prepares weighted sprite distribution for random selection
  */
 window.preload = function preload() {
-  font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
   pixelDensity(1);
   for (let sprite of [
     ...forestSpriteList,
@@ -110,47 +131,47 @@ window.setup = function setup() {
   // Initialize the WebSocket connection for image processing
   socket_img.onopen = function () {
     console.log("WebSocket 8081 for image processing is open now.");
-  }
-  
-  socket_img.onclose = function () {
-    console.error("WebSocket connection closed. Reconnecting...");
-  setTimeout(() => {
-  socket_img = new WebSocket("ws://localhost:8081");
-  }, 1000); // 尝试在 1 秒后重新连接
   };
 
-   socket_img.onerror = function (error) {
-     console.error("WebSocket error for Picture Generation:", error);
+  socket_img.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+    setTimeout(() => {
+      socket_img = new WebSocket("ws://localhost:8081");
+    }, 1000); // 尝试在 1 秒后重新连接
+  };
+
+  socket_img.onerror = function (error) {
+    console.error("WebSocket error for Picture Generation:", error);
   };
 
   // Initialize the WebSocket connection for LLM processing
   socket_llm.onopen = function () {
-     console.log("WebSocket 8082 (LLM processing) is open now.");
-     socket_llmReady = true;
-  }
+    console.log("WebSocket 8082 (LLM processing) is open now.");
+    socket_llmReady = true;
+  };
   socket_llm.onclose = function () {
-     console.error("WebSocket connection closed. Reconnecting...");
-     setTimeout(() => {
-       socket_llm = new WebSocket("ws://localhost:8082");
-     }, 1000); // 尝试在 1 秒后重新连接
+    console.error("WebSocket connection closed. Reconnecting...");
+    setTimeout(() => {
+      socket_llm = new WebSocket("ws://localhost:8082");
+    }, 1000); // 尝试在 1 秒后重新连接
   };
   socket_llm.onerror = function (error) {
-     console.error("WebSocket error for LLM requests:", error);
+    console.error("WebSocket error for LLM requests:", error);
   };
 
-   // real-time handling of LLM responses
+  // real-time handling of LLM responses
   socket_llm.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(
-      JSON.stringify({
-        type: "output",
-        content: data.response,
-      })
-    );
-  }
-  console.log("Received LLM response:", data.response);
-};
+    const data = JSON.parse(event.data);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "output",
+          content: data.response,
+        })
+      );
+    }
+    console.log("Received LLM response:", data.response);
+  };
 
   noiseSeed(0);
   // check for the loading of the p5.SpeechRec library
@@ -179,15 +200,16 @@ window.setup = function setup() {
       // Start the continuous animation loop for auto-scrolling
       setInterval(autoScroll, scrollInterval);
     } else {
-      setTimeout(checkAndDrawScene, 100);
+      setTimeout(checkAndDrawScene, 500);
     }
   }
   checkAndDrawScene();
   animationLoop();
-  // for (let i = -20; i <= 20; i++) {
-  //   // console.log(i, getTemperature(i * ASCIIWidth));
-  //   console.log(i, getBiomeType(i * ASCIIWidth));
-  // }
+
+  for (let i = -20; i < 20; i++) {
+    const pos = i * mapWidth;
+    console.log(pos, getTemperature(pos), getBiomeType(pos));
+  }
 };
 
 function gotSpeech() {
@@ -197,7 +219,7 @@ function gotSpeech() {
     // output the recognized text to the console
     console.log(speechRec.resultString);
     // Turn the result string into a lowercase string
-    let result = speechRec.resultString
+    let result = speechRec.resultString;
     result = result.toLowerCase();
     // Remove all the punctuation from the string, such as ?, !, ., etc.
     result = result.replace(/[.,\/#!$%?\^&\*;:{}=\-_`~()]/g, "");
@@ -214,17 +236,17 @@ function gotSpeech() {
     }
 
     // 2. 窗口移动
-    if (result == "move left"){
+    if (result == "move left") {
       direction = "left";
       console.log("Moving left");
       return;
     }
-    if (result == "move right"){
+    if (result == "move right") {
       direction = "right";
       console.log("Moving right");
       return;
     }
-    if (result == "stop moving"){
+    if (result == "stop moving") {
       direction = "stop";
       console.log("Stop moving");
       return;
@@ -239,7 +261,7 @@ function gotSpeech() {
       genPicModeOn = false;
       console.log("Picture Generation Mode Off");
       return;
-    } 
+    }
     // 4. 聊天模式
     else if (result == "chat mode") {
       // if the recieved information asks to chat:
@@ -277,27 +299,13 @@ function gotSpeech() {
   }
 }
 
-// Canvas dimension constants
-const ASCIIWidth = 504,
-  ASCIIHeight = 146;
-let ymax, xmin, xmax; // Coordinate boundaries for the terrain
-let mapWidth, mapHeight; // Dimensions of the terrain map
-
-let cameraX = 100; // Camera position in the X direction
-const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
-const scrollInterval = 200; // Time between scroll updates (milliseconds)
-const terrainPages = [],
-  spritePages = []; // Store generated sprite in previous pages
-let pageStart = 0,
-  pageEnd = -1; // Start and end indices for sprite pages
-
 /**
  * Auto-scrolling function - continuously updates camera position
  * and redraws the scene
  */
 function autoScroll() {
   //if (!ready) return;
-  switch(direction){
+  switch (direction) {
     case "left":
       cameraX -= scrollSpeed;
       break;
@@ -309,23 +317,12 @@ function autoScroll() {
       // 不动
       break;
   }
-  if (cameraX > mapWidth * 30) {
+  if (cameraX > mapWidth * 20 || cameraX < -mapWidth * 20) {
     cameraX *= -1;
     socket.send(
       JSON.stringify({
         type: "output",
-        content:
-          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
-      })
-    );
-  }
-  if (cameraX < -mapWidth * 30) {
-    cameraX *= -1;
-    socket.send(
-      JSON.stringify({
-        type: "output",
-        content:
-          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
+        content: "[ERROR] WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
       })
     );
   }
@@ -343,10 +340,7 @@ function loadAnimalSprites(keyword) {
   // keyword: 例如 "squirrel" 或 "frog"
   const lowerKeyword = keyword.toLowerCase();
   for (let sprite of animalSpriteList) {
-    if (
-      sprite.name.toLowerCase().includes(lowerKeyword) &&
-      !sprite.loadedImg
-    ) {
+    if (sprite.name.toLowerCase().includes(lowerKeyword) && !sprite.loadedImg) {
       sprite.loadedImg = loadImage(
         sprite.img,
         (img) => {
@@ -370,7 +364,6 @@ function loadAnimalSprites(keyword) {
 function drawScene() {
   noiseSeed(0);
   randomSeed(0);
-  background(0);
 
   ymax = ceil(ASCIIHeight / 3) + 10;
   xmin = floor((-6 * ymax) / 7) - 1;
@@ -383,22 +376,13 @@ function drawScene() {
   const sprites = getSpritePosition(cameraX);
 
   const ASCIICanvas = renderScreen(terrain, sprites);
-
-  // textAlign(CENTER, CENTER);
-  // textSize(16);
-  // textFont(font);
-  // fill(255);
-  // for (let y = 0; y < ASCIICanvas.length; y++) {
-  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
-  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-  //   }
-  // }
+  const ASCIICanvasWithSnow = snowEffect(ASCIICanvas);
 
   if (socket.readyState === WebSocket.OPEN) {
     // Send ASCII art content
     const asciiContent = JSON.stringify({
       type: "ascii",
-      content: ASCIICanvas.map((row) => row.join("")).join("\n"),
+      content: ASCIICanvasWithSnow.map((row) => row.join("")).join("\n"),
     });
     socket.send(asciiContent);
 
@@ -409,6 +393,26 @@ function drawScene() {
      
   }
 
+  // 下雪效果
+  if (snowModeOn) {
+    for (let flake of snowflakes) {
+      // 在画布上绘制雪点
+      if (
+        flake.y >= 0 &&
+        flake.y < ASCIICanvas.length &&
+        flake.x >= 0 &&
+        flake.x < ASCIICanvas[0].length
+      ) {
+        ASCIICanvas[Math.floor(flake.y)][Math.floor(flake.x)] = ".";
+      }
+      // 雪点下落
+      flake.y += flake.speed;
+      if (flake.y >= ASCIIHeight) {
+        flake.y = 0;
+        flake.x = Math.floor(Math.random() * ASCIIWidth);
+      }
+    }
+  }
 }
 
 function getTemperature(offset) {
@@ -739,64 +743,9 @@ function renderScreen(terrain, sprites) {
         }
       }
     }
-  };
-
-  for (let y = 0; y <= ymax; y++) {
-    for (let x = xmax; x >= xmin; x--) {
-      const height = getHeight(x, y);
-      const i = y * 3 - height * 2,
-        j = x * 7 + y * 6;
-      if (height >= 0) {
-        fillImg(tileFillingImg, i, j);
-
-        if (getHeight(x, y - 1) !== height) fillImg(tileTopImg, i, j, false);
-        if (getHeight(x, y + 1) < height) fillImg(tileBottomImg, i, j);
-        if (getHeight(x - 1, y) < height) fillImg(tileLeftImg, i, j);
-        if (getHeight(x + 1, y) !== height) fillImg(tileRightImg, i, j);
-
-        const leftLength = max(getHeight(x - 1, y), getHeight(x, y - 1));
-        const midLength = max(getHeight(x - 1, y), getHeight(x, y + 1));
-        const rightLength = max(getHeight(x, y + 1), getHeight(x + 1, y));
-
-        for (let t = 0; t <= height; t++) {
-          fillImg(pillarLeftFillingImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t <= height; t++) {
-          fillImg(pillarFrontFillingImg, i + t * 2, j - 1);
-        }
-
-        for (let t = 0; t < height - leftLength; t++) {
-          fillImg(pillarLeftImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t < height - midLength; t++) {
-          fillImg(pillarMidImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t < height - rightLength; t++) {
-          fillImg(pillarRightImg, i + t * 2, j - 1);
-        }
-      }
-    }
-
-    for (let x = xmax; x >= xmin; x--) {
-      const height = getHeight(x, y);
-      const i = y * 3 - height * 2,
-        j = x * 7 + y * 6;
-      if (sprites[y][x - xmin] !== null) {
-        const sprite = sprites[y][x - xmin];
-        const brightness = map(noise(x / 30, y / 30), 0, 1, 0.5, 2);
-        const img = getAsciiSprite(sprite.edgeImg, sprite.fillImg, brightness);
-        fillImg(img, i + 3 - sprite.height, j + 6 - round(sprite.width / 2));
-      }
-    }
+    flake.y += flake.speed;
+    if (flake.y < ASCIIHeight) newSnowflakes.push(flake);
   }
-
-  for (let y = 0; y < ASCIICanvas.length; y++) {
-    for (let x = 0; x < ASCIICanvas[y].length; x++) {
-      if (ASCIICanvas[y][x] === "A") ASCIICanvas[y][x] = " ";
-      else if (ASCIICanvas[y][x] === "B") ASCIICanvas[y][x] = "#";
-      else if (ASCIICanvas[y][x] === "C") ASCIICanvas[y][x] = ".";
-    }
-  }
-
+  snowflakes = newSnowflakes;
   return ASCIICanvas;
 }
