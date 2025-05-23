@@ -23,53 +23,78 @@ npm run start
 - Right click on `frontend/index.html` and select `Open with Live Server` to open the webpage in the browser.
 - You should see the display in the server console.
 
-## 本地部署 ComfyUI API 指南
+## Local Deployment Guide for ComfyUI API
 
-本项目提供了本地部署 ComfyUI，并通过 API 的方式在 python 脚本中调用 ComfyUI，最终实现自定义调用的指引
+This project provides instructions for deploying ComfyUI locally and calling ComfyUI via API in Python scripts, enabling custom usage.
 
-### 1. 克隆 ComfyUI 官方仓库
+### 1. Clone the Official ComfyUI Repository
 
 ```cmd
 git clone https://github.com/comfyanonymous/ComfyUI.git
 ```
 
-### 2. 获取合法的 ComfyUI 工作流
+### 2. Obtain a Valid ComfyUI Workflow
 
-此处考虑到 python 脚本只提供了 prompt to image 的功能，采用课上给出的 text2image 工作流： `simple-text-2-image-DreamShaper.json`，放在文件夹底下了。
+Since the Python script only provides prompt-to-image functionality, use the text2image workflow provided in class: `simple-text-2-image-DreamShaper.json`, which is placed in the folder.
 
-### 3. 运行 ComfyUI
+### 3. Run ComfyUI
 
-进入 ComfyUI 所在文件夹：
+Navigate to the ComfyUI folder:
 
 ```cmd
 cd ComfyUI
 ```
 
-运行 `main.py`，根据命令行界面给出的 url，打开 ComfyUI
+Run `main.py` and open ComfyUI using the URL provided in the command line interface:
 
 ```cmd
 python main.py
 ```
 
-### 4. 获取工作流的 API
+### 4. Obtain the Workflow API
 
-将原工作流 `simple-text-2-image-DreamShaper.json` 拖入 ComfyUI 界面
-![ComfyUI界面截图](./instruction_pic/UI.png)
+Drag the original workflow `simple-text-2-image-DreamShaper.json` into the ComfyUI interface.
+![ComfyUI Interface Screenshot](./pregen//instruction_pic/UI.png)
 
-点击页面左下角的齿轮图标，在设置中打开开发者模式以运行工作流以 API 的形式下载
-![ComfyUI界面截图2](./instruction_pic/UI2.png)
+Click the gear icon in the lower left corner of the page, and enable developer mode in the settings to run the workflow and download it as an API.
+![ComfyUI Interface Screenshot 2](./pregen//instruction_pic/UI2.png)
 
-随后在界面的左上角点击保存，并将工作流另存为 API，最后保存到当前目录：
-![ComfyUI界面截图3](./instruction_pic/UI3.png)
+Then click save in the upper left corner of the interface, save the workflow as an API, and save it to the current directory:
+![ComfyUI Interface Screenshot 3](./pregen//instruction_pic/UI3.png)
 
-当前目录下的工作流 API 重命名为`workflow_api.json`
+Rename the workflow API in the current directory to `workflow_api.json`.
 
-### 5. 在当前目录运行脚本
+### 5. Run the Script in the Current Directory
 
-于当前文件夹运行 python 脚本`api.py`:
+Run the Python script `api.py` in the current folder:
 
 ```cmd
 python api.py
 ```
 
-当前脚本设定为从 CLI 读取用户输入，并覆写到 `workflow_api.json`, 最终由 ComfyUI 读取 API 工作流，生成图片并保存到指定文件夹。当前脚本的保存文件夹为 output，如有需要请修改脚本中的 `WORKING_DIR` 变量以修改输出文件夹。
+The current script is set to read user input from the CLI and overwrite `workflow_api.json`, which is then read by ComfyUI as an API workflow to generate images and save them to the specified folder. The current output folder is `output`. If needed, modify the `WORKING_DIR` variable in the script to change the output folder.
+<br><br>
+
+## How to start a talk with AI?
+
+### 1. Download the Ollama Interface and check its status on the cmd:
+```cmd
+ollama --version
+```
+### 2. Pull a suitable model from the official Ollama repository. We use phi3 model here as a light scale model for chatting:
+```cmd
+ollama pull phi3
+```
+
+### 3. Run the model to ensure it's properly deployed locally:
+```cmd
+ollama run phi3
+```
+
+### 4. Change the current working directory into `chat` and run `LLM_server.py` to establish the connection between the model and the server:
+```cmd
+cd chat
+python LLM_server.py
+```
+
+### 5. Now You can chat with the model after granting access of your pc's microphone. Try to say `chat mode` and the chat mode will be activated. Then you can try to chat with the model. To exit chat mode, just say: `exit chat mode`
