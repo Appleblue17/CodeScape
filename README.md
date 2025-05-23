@@ -1,8 +1,27 @@
 ## How to Run
 
-1. 安装 Live Server 插件，右键点击 `frontend/index.html`，选择 `Open with Live Server`，在浏览器中打开网页
+### Environment setup
+- Install node.js, python3.
+- Install js dependencies.
+```bash
+cd frontend
+npm install
+cd backend
+npm install
+```
 
-2. 在命令行中打开 `backend`，运行 `npm run start`
+### Run the server
+- Start the backend server.
+
+```bash
+cd backend
+npm run start
+```
+
+### Run the client
+- Install Live Server extension in VSCode.
+- Right click on `frontend/index.html` and select `Open with Live Server` to open the webpage in the browser.
+- You should see the display in the server console.
 
 ## 本地部署 ComfyUI API 指南
 

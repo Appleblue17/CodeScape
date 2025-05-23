@@ -110,47 +110,47 @@ window.setup = function setup() {
   // Initialize the WebSocket connection for image processing
   socket_img.onopen = function () {
     console.log("WebSocket 8081 for image processing is open now.");
-  }
-  
-  socket_img.onclose = function () {
-    console.error("WebSocket connection closed. Reconnecting...");
-  setTimeout(() => {
-  socket_img = new WebSocket("ws://localhost:8081");
-  }, 1000); // 尝试在 1 秒后重新连接
   };
 
-   socket_img.onerror = function (error) {
-     console.error("WebSocket error for Picture Generation:", error);
+  socket_img.onclose = function () {
+    console.error("WebSocket connection closed. Reconnecting...");
+    setTimeout(() => {
+      socket_img = new WebSocket("ws://localhost:8081");
+    }, 1000); // 尝试在 1 秒后重新连接
+  };
+
+  socket_img.onerror = function (error) {
+    console.error("WebSocket error for Picture Generation:", error);
   };
 
   // Initialize the WebSocket connection for LLM processing
   socket_llm.onopen = function () {
-     console.log("WebSocket 8082 (LLM processing) is open now.");
-     socket_llmReady = true;
-  }
+    console.log("WebSocket 8082 (LLM processing) is open now.");
+    socket_llmReady = true;
+  };
   socket_llm.onclose = function () {
-     console.error("WebSocket connection closed. Reconnecting...");
-     setTimeout(() => {
-       socket_llm = new WebSocket("ws://localhost:8082");
-     }, 1000); // 尝试在 1 秒后重新连接
+    console.error("WebSocket connection closed. Reconnecting...");
+    setTimeout(() => {
+      socket_llm = new WebSocket("ws://localhost:8082");
+    }, 1000); // 尝试在 1 秒后重新连接
   };
   socket_llm.onerror = function (error) {
-     console.error("WebSocket error for LLM requests:", error);
+    console.error("WebSocket error for LLM requests:", error);
   };
 
-   // real-time handling of LLM responses
+  // real-time handling of LLM responses
   socket_llm.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(
-      JSON.stringify({
-        type: "output",
-        content: data.response,
-      })
-    );
-  }
-  console.log("Received LLM response:", data.response);
-};
+    const data = JSON.parse(event.data);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "output",
+          content: data.response,
+        })
+      );
+    }
+    console.log("Received LLM response:", data.response);
+  };
 
   noiseSeed(0);
   // check for the loading of the p5.SpeechRec library
@@ -197,7 +197,7 @@ function gotSpeech() {
     // output the recognized text to the console
     console.log(speechRec.resultString);
     // Turn the result string into a lowercase string
-    let result = speechRec.resultString
+    let result = speechRec.resultString;
     result = result.toLowerCase();
     // Remove all the punctuation from the string, such as ?, !, ., etc.
     result = result.replace(/[.,\/#!$%?\^&\*;:{}=\-_`~()]/g, "");
@@ -214,17 +214,17 @@ function gotSpeech() {
     }
 
     // 2. 窗口移动
-    if (result == "move left"){
+    if (result == "move left") {
       direction = "left";
       console.log("Moving left");
       return;
     }
-    if (result == "move right"){
+    if (result == "move right") {
       direction = "right";
       console.log("Moving right");
       return;
     }
-    if (result == "stop moving"){
+    if (result == "stop moving") {
       direction = "stop";
       console.log("Stop moving");
       return;
@@ -239,7 +239,7 @@ function gotSpeech() {
       genPicModeOn = false;
       console.log("Picture Generation Mode Off");
       return;
-    } 
+    }
     // 4. 聊天模式
     else if (result == "chat mode") {
       // if the recieved information asks to chat:
@@ -297,7 +297,7 @@ let pageStart = 0,
  */
 function autoScroll() {
   //if (!ready) return;
-  switch(direction){
+  switch (direction) {
     case "left":
       cameraX -= scrollSpeed;
       break;
@@ -343,10 +343,7 @@ function loadAnimalSprites(keyword) {
   // keyword: 例如 "squirrel" 或 "frog"
   const lowerKeyword = keyword.toLowerCase();
   for (let sprite of animalSpriteList) {
-    if (
-      sprite.name.toLowerCase().includes(lowerKeyword) &&
-      !sprite.loadedImg
-    ) {
+    if (sprite.name.toLowerCase().includes(lowerKeyword) && !sprite.loadedImg) {
       sprite.loadedImg = loadImage(
         sprite.img,
         (img) => {
@@ -406,7 +403,6 @@ function drawScene() {
     // // to see how the terminal overlay works with the ASCII display
 
     // // Test tentative input (as if user is speaking)
-     
   }
 
   // 下雪效果

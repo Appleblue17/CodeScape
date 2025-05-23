@@ -65,13 +65,13 @@ window.setup = function setup() {
 
   socket_img.onopen = function () {
     console.log("WebSocket 8081 for image processing is open now.");
-  }
-  
+  };
+
   socket_img.onclose = function () {
     console.error("WebSocket connection closed. Reconnecting...");
-  setTimeout(() => {
-    socket_img = new WebSocket("ws://localhost:8081");
-  }, 1000); // 尝试在 1 秒后重新连接
+    setTimeout(() => {
+      socket_img = new WebSocket("ws://localhost:8081");
+    }, 1000); // 尝试在 1 秒后重新连接
   };
 
   socket_img.onerror = function (error) {
@@ -99,20 +99,19 @@ window.setup = function setup() {
 };
 
 function gotSpeech() {
-  if (speechRec.resultValue){
+  if (speechRec.resultValue) {
     // output the recognized text to the console
     console.log(speechRec.resultString);
 
     // send the recognized text to the backend server
-    if(socket_img.readyState === WebSocket.OPEN) {
+    if (socket_img.readyState === WebSocket.OPEN) {
       const message = JSON.stringify({ text: speechRec.resultString });
       socket_img.send(message);
-    }
-    else {
+    } else {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
     }
   }
-};
+}
 
 /**
  * Handle keyboard input to control camera movement
