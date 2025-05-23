@@ -9,8 +9,11 @@
  */
 
 //import { text } from "body-parser";
-import getAsciiSprite, { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
-import { capitalize, medianFilter, randomShuffle } from "./util.js";
+import { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
+import { randomShuffle } from "./util.js";
+import { refreshPages, getTerrain, getSpritePosition } from "./index.js";
+import renderScreen from "./renderScreen.js";
+
 import forestSpriteList from "./sprite_list/forest.js";
 import fungiSpriteList from "./sprite_list/fungi.js";
 import mountainSpriteList from "./sprite_list/mountain.js";
@@ -30,6 +33,20 @@ let direction;
 let snowModeOn = false;
 let snowflakes = [];
 const SNOWFLAKE_COUNT = 100; // 雪点数量，可调整
+
+const spriteRollList = {}; // Weighted list for random sprite selection
+export { spriteRollList };
+
+// Canvas dimension constants
+const ASCIIWidth = 504,
+  ASCIIHeight = 146;
+let ymax, xmin, xmax; // Coordinate boundaries for the terrain
+let mapWidth, mapHeight; // Dimensions of the terrain map
+export { ASCIIWidth, ASCIIHeight, mapWidth, mapHeight, xmin, xmax, ymax };
+
+let cameraX = 100; // Camera position in the X direction
+const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
+const scrollInterval = 200; // Time between scroll updates (milliseconds)
 
 /**
  * Preload assets before setup
@@ -277,20 +294,6 @@ function gotSpeech() {
   }
 }
 
-// Canvas dimension constants
-const ASCIIWidth = 504,
-  ASCIIHeight = 146;
-let ymax, xmin, xmax; // Coordinate boundaries for the terrain
-let mapWidth, mapHeight; // Dimensions of the terrain map
-
-let cameraX = 100; // Camera position in the X direction
-const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
-const scrollInterval = 200; // Time between scroll updates (milliseconds)
-const terrainPages = [],
-  spritePages = []; // Store generated sprite in previous pages
-let pageStart = 0,
-  pageEnd = -1; // Start and end indices for sprite pages
-
 /**
  * Auto-scrolling function - continuously updates camera position
  * and redraws the scene
@@ -381,16 +384,6 @@ function drawScene() {
 
   const ASCIICanvas = renderScreen(terrain, sprites);
 
-  // textAlign(CENTER, CENTER);
-  // textSize(16);
-  // textFont(font);
-  // fill(255);
-  // for (let y = 0; y < ASCIICanvas.length; y++) {
-  //   for (let x = 0; x < ASCIICanvas[y].length; x++) {
-  //     text(ASCIICanvas[y][x], x * 8 + 4, y * 16 + 8);
-  //   }
-  // }
-
   if (socket.readyState === WebSocket.OPEN) {
     // Send ASCII art content
     const asciiContent = JSON.stringify({
@@ -398,11 +391,6 @@ function drawScene() {
       content: ASCIICanvas.map((row) => row.join("")).join("\n"),
     });
     socket.send(asciiContent);
-
-    // // For testing the terminal UI - these lines send test messages
-    // // to see how the terminal overlay works with the ASCII display
-
-    // // Test tentative input (as if user is speaking)
   }
 
   // 下雪效果
@@ -425,394 +413,4 @@ function drawScene() {
       }
     }
   }
-}
-
-function getTemperature(offset) {
-  const x = offset / ASCIIWidth;
-  const temp = -273.15 + Math.exp((-x * x) / 100) * 300;
-  const randomTemp = noise(x) * 10;
-  return Math.max(temp + randomTemp, -273.15);
-}
-
-function getBiomeType(offset) {
-  const temp = getTemperature(offset);
-  if (temp < 0) {
-    return "ice";
-  } else {
-    let e = noise(offset / 2 + 20);
-    if (e < 0.4) {
-      return "mountain";
-    } else if (e < 0.7) {
-      return "forest";
-    } else {
-      return "fungi";
-    }
-  }
-}
-
-/**
- * Generates terrain height map based on the selected terrain type
- * Uses Perlin noise to create natural-looking elevation patterns
- *
- * @param {Array<Array<number>>} terrain - 2D array to store elevation values
- */
-function generateTerrain(terrain, offset) {
-  const biomeType = getBiomeType(offset);
-  const temp = getTemperature(offset);
-
-  if (biomeType === "forest") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 50, y / 50) * 10;
-        terrain[y][x] = ceil(e);
-      }
-    }
-    medianFilter(terrain, 10);
-  } else if (biomeType === "fungi") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 50, y / 50) * 10;
-        terrain[y][x] = ceil(e);
-      }
-    }
-    medianFilter(terrain, 10);
-
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 10 + 5, y / 10 + 5) * 30;
-        if (e >= 15) terrain[y][x] += ceil(e - 15);
-      }
-    }
-    medianFilter(terrain, 8);
-
-    for (let t = 0; t < 30; t++) {
-      const x0 = floor(random(0, mapWidth));
-      const y0 = floor(random(0, mapHeight));
-      const h = terrain[y0][x0] + floor(random(3, 8));
-      for (let y = y0; y <= y0 + 1; y++) {
-        for (let x = x0 - 1; x <= x0 + 1; x++) {
-          if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) continue;
-          terrain[y][x] = h;
-        }
-      }
-    }
-  } else if (biomeType === "mountain") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 50, y / 50) * 10;
-        terrain[y][x] = ceil(e);
-      }
-    }
-    medianFilter(terrain, 10);
-
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 40 + 5, y / 40 + 5) * 60;
-        if (e >= 30) terrain[y][x] += ceil(e - 30);
-      }
-    }
-    medianFilter(terrain, 5);
-  } else if (biomeType === "ice") {
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 50, y / 50) * 10;
-        terrain[y][x] = ceil(e);
-      }
-    }
-    medianFilter(terrain, 10);
-
-    const lim = map(temp, 0, -273, 0, 15, true);
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        let e = noise((x + offset) / 5 + 3, y / 5 + 3) * 60;
-        if (e >= 40) terrain[y][x] += ceil((e - 40) * lim);
-      }
-    }
-
-    for (let t = 0; t < 30; t++) {
-      const x0 = floor(random(0, mapWidth));
-      const y0 = floor(random(0, mapHeight));
-      terrain[y0][x0] = 0;
-    }
-  }
-}
-
-const spriteRollList = {}; // Weighted list for random sprite selection
-let spriteRollIndex = 0; // Current position in the sprite selection list
-
-/**
- * Places sprites throughout the terrain based on:
- * - Height map values (placement on flat areas)
- * - Noise-based density variation
- * - Minimum distance constraints between sprites
- *
- * @param {Array<Array<number>>} terrain - The terrain height map
- * @param {Array<Array<Object>>} sprites - 2D array to store placed sprites
- * @param {number} offset - The offset for the terrain generation
- */
-function generateSpritePosition(terrain, sprites, offset) {
-  let minDist = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
-  let occupied = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
-  const biomeType = getBiomeType(offset);
-  const temp = getTemperature(offset);
-
-  const getHeight = (x, y) => {
-    x -= xmin;
-    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return 0;
-    return terrain[y][x];
-  };
-
-  const gridPermutation = [];
-  for (let y = 0; y <= ymax; y++) {
-    for (let x = xmax; x >= xmin; x--) {
-      gridPermutation.push({ x, y });
-    }
-  }
-  randomShuffle(gridPermutation);
-
-  for (let x = xmin; x <= xmax; x++) {
-    let current = 0;
-    for (let y = 0; y <= ymax; y++) {
-      if (getHeight(x, y) === getHeight(x, y - 1)) current++;
-      else current = 0;
-      minDist[y][x - xmin] = current;
-    }
-  }
-  for (let y = 0; y <= ymax; y++) {
-    let current = 0;
-    for (let x = xmin; x <= xmax; x++) {
-      if (getHeight(x, y) === getHeight(x - 1, y)) current++;
-      else current = 0;
-      minDist[y][x - xmin] = min(minDist[y][x - xmin], current);
-    }
-  }
-  for (let y = 0; y <= ymax; y++) {
-    let current = 0;
-    for (let x = xmax; x >= xmin; x--) {
-      if (getHeight(x, y) === getHeight(x + 1, y)) current++;
-      else current = 0;
-      minDist[y][x - xmin] = min(minDist[y][x - xmin], current);
-    }
-  }
-
-  const setOccupy = (x, y, size) => {
-    x -= xmin;
-    for (let i = -size; i <= size; i++) {
-      for (let j = -size; j <= size; j++) {
-        if (x + i < 0 || x + i >= mapWidth || y + j < 0 || y + j >= mapHeight) continue;
-        occupied[y + j][x + i] = true;
-      }
-    }
-  };
-
-  let coef = 1;
-  if (biomeType === "forest") {
-    coef = map(temp, 0, 30, 0, 1, true);
-  } else if (biomeType === "fungi") {
-    coef = map(temp, 0, 30, 0.2, 1, true);
-  } else if (biomeType === "ice") {
-    coef = map(temp, 0, -273, 1, 0.2, true);
-  }
-
-  spriteRollIndex %= spriteRollList[biomeType].length;
-  for (let t = 0; t < gridPermutation.length; t++) {
-    const { x, y } = gridPermutation[t];
-    if (occupied[y][x - xmin]) continue;
-    const density = noise(x / 50, y / 50) * coef;
-    if (random() < density) {
-      let attempt = 0;
-      while (attempt < 10) {
-        const sprite = spriteRollList[biomeType][spriteRollIndex];
-        spriteRollIndex = (spriteRollIndex + 1) % spriteRollList[biomeType].length;
-        if (sprite.dist <= minDist[y][x - xmin]) {
-          sprites[y][x - xmin] = sprite;
-          setOccupy(x, y, round(sprite.dist * 0.5));
-          break;
-        }
-        attempt++;
-      }
-    }
-  }
-}
-
-function extendPages(direction) {
-  if (direction === 0) {
-    // Extend to the left
-    terrainPages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0)));
-    spritePages.unshift(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
-    generateTerrain(terrainPages[0], (pageStart - 1) * mapWidth);
-    generateSpritePosition(terrainPages[0], spritePages[0], (pageStart - 1) * mapWidth);
-    pageStart--;
-  } else {
-    // Extend to the right
-    terrainPages.push(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0)));
-    spritePages.push(Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null)));
-    generateTerrain(terrainPages[terrainPages.length - 1], (pageEnd + 1) * mapWidth);
-    generateSpritePosition(
-      terrainPages[terrainPages.length - 1],
-      spritePages[spritePages.length - 1],
-      (pageEnd + 1) * mapWidth
-    );
-    pageEnd++;
-  }
-}
-
-function refreshPages(offset) {
-  while (offset < pageStart * mapWidth) {
-    extendPages(0);
-  }
-  while (offset >= pageEnd * mapWidth) {
-    extendPages(1);
-  }
-}
-
-function getTerrain(offset) {
-  let terrain = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(0));
-  // calculate which page the offset is in
-  const page = Math.floor((offset - pageStart * mapWidth) / mapWidth);
-  const pageOffset = offset - (pageStart + page) * mapWidth;
-
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = pageOffset; x < mapWidth; x++) {
-      terrain[y][x - pageOffset] = terrainPages[page][y][x];
-    }
-  }
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < pageOffset; x++) {
-      terrain[y][x + mapWidth - pageOffset] = terrainPages[page + 1][y][x];
-    }
-  }
-  return terrain;
-}
-
-function getSpritePosition(offset) {
-  let sprites = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(null));
-  // calculate which page the offset is in
-  const page = Math.floor((offset - pageStart * mapWidth) / mapWidth);
-  const pageOffset = offset - (pageStart + page) * mapWidth;
-
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = pageOffset; x < mapWidth; x++) {
-      sprites[y][x - pageOffset] = spritePages[page][y][x];
-    }
-  }
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < pageOffset; x++) {
-      sprites[y][x + mapWidth - pageOffset] = spritePages[page + 1][y][x];
-    }
-  }
-  return sprites;
-}
-
-// ASCII art templates for terrain rendering
-const tileTopImg = ["_______"];
-const tileLeftImg = ["", "\\_", "  \\_", "    \\_"];
-const tileRightImg = ["", "       \\_", "         \\_", "           \\_"];
-const tileBottomImg = ["", "", "", "     _______"];
-const tileFillingImg = ["", "AAAAAAAAA", "  AAAAAAAAA", "     AAAAAAA"];
-
-// ASCII art templates for vertical elements
-const pillarLeftImg = ["", "|", "|"];
-const pillarMidImg = ["", "", "", "", "      |", "      |"];
-const pillarRightImg = ["", "", "", "", "             |", "             |"];
-const pillarLeftFillingImg = ["", "", " BB", " BBBB", "   BBBB"];
-const pillarFrontFillingImg = ["", "", "", "", "       CCCCCCC", "       CCCCCCC"];
-
-/**
- * Renders the final ASCII art representation of the terrain and sprites
- * Uses isometric projection to create a 3D effect with ASCII characters
- *
- * @param {Array<Array<number>>} terrain - The terrain height map
- * @param {Array<Array<Object>>} sprites - Placed sprite objects
- * @returns {Array<Array<string>>} - 2D array of ASCII characters
- */
-function renderScreen(terrain, sprites) {
-  const ASCIICanvas = Array.from({ length: ASCIIHeight }, () => Array(ASCIIWidth).fill(" "));
-
-  const getHeight = (x, y) => {
-    x -= xmin;
-    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) return 0;
-    return terrain[y][x];
-  };
-  const fillImg = (img, x, y, cover = true) => {
-    for (let t = 0; t < img.length; t++) {
-      for (let k = 0; k < img[t].length; k++) {
-        if (
-          img[t][k] !== " " &&
-          x + t >= 0 &&
-          y + k >= 0 &&
-          x + t < ASCIIHeight &&
-          y + k < ASCIIWidth
-        ) {
-          if (
-            cover ||
-            ASCIICanvas[x + t][y + k] === "A" ||
-            ASCIICanvas[x + t][y + k] === "B" ||
-            ASCIICanvas[x + t][y + k] === "C"
-          ) {
-            ASCIICanvas[x + t][y + k] = img[t][k];
-          }
-        }
-      }
-    }
-  };
-
-  for (let y = 0; y <= ymax; y++) {
-    for (let x = xmax; x >= xmin; x--) {
-      const height = getHeight(x, y);
-      const i = y * 3 - height * 2,
-        j = x * 7 + y * 6;
-      if (height >= 0) {
-        fillImg(tileFillingImg, i, j);
-
-        if (getHeight(x, y - 1) !== height) fillImg(tileTopImg, i, j, false);
-        if (getHeight(x, y + 1) < height) fillImg(tileBottomImg, i, j);
-        if (getHeight(x - 1, y) < height) fillImg(tileLeftImg, i, j);
-        if (getHeight(x + 1, y) !== height) fillImg(tileRightImg, i, j);
-
-        const leftLength = max(getHeight(x - 1, y), getHeight(x, y - 1));
-        const midLength = max(getHeight(x - 1, y), getHeight(x, y + 1));
-        const rightLength = max(getHeight(x, y + 1), getHeight(x + 1, y));
-
-        for (let t = 0; t <= height; t++) {
-          fillImg(pillarLeftFillingImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t <= height; t++) {
-          fillImg(pillarFrontFillingImg, i + t * 2, j - 1);
-        }
-
-        for (let t = 0; t < height - leftLength; t++) {
-          fillImg(pillarLeftImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t < height - midLength; t++) {
-          fillImg(pillarMidImg, i + t * 2, j - 1);
-        }
-        for (let t = 0; t < height - rightLength; t++) {
-          fillImg(pillarRightImg, i + t * 2, j - 1);
-        }
-      }
-    }
-
-    for (let x = xmax; x >= xmin; x--) {
-      const height = getHeight(x, y);
-      const i = y * 3 - height * 2,
-        j = x * 7 + y * 6;
-      if (sprites[y][x - xmin] !== null) {
-        const sprite = sprites[y][x - xmin];
-        const brightness = map(noise(x / 30, y / 30), 0, 1, 0.5, 2);
-        const img = getAsciiSprite(sprite.edgeImg, sprite.fillImg, brightness);
-        fillImg(img, i + 3 - sprite.height, j + 6 - round(sprite.width / 2));
-      }
-    }
-  }
-
-  for (let y = 0; y < ASCIICanvas.length; y++) {
-    for (let x = 0; x < ASCIICanvas[y].length; x++) {
-      if (ASCIICanvas[y][x] === "A") ASCIICanvas[y][x] = " ";
-      else if (ASCIICanvas[y][x] === "B") ASCIICanvas[y][x] = "#";
-      else if (ASCIICanvas[y][x] === "C") ASCIICanvas[y][x] = ".";
-    }
-  }
-
-  return ASCIICanvas;
 }
