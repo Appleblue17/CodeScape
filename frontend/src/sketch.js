@@ -8,7 +8,6 @@
  * - ASCII character-based rendering of the 3D landscape
  */
 
-//import { text } from "body-parser";
 import { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { randomShuffle } from "./util.js";
 import {
@@ -206,10 +205,10 @@ window.setup = function setup() {
   checkAndDrawScene();
   animationLoop();
 
-  for (let i = -20; i < 20; i++) {
-    const pos = i * mapWidth;
-    console.log(pos, getTemperature(pos), getBiomeType(pos));
-  }
+  // for (let i = -20; i < 20; i++) {
+  //   const pos = i * mapWidth;
+  //   console.log(pos, getTemperature(pos), getBiomeType(pos));
+  // }
 };
 
 function gotSpeech() {
