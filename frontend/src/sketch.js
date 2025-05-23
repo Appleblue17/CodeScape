@@ -409,26 +409,6 @@ function drawScene() {
      
   }
 
-  // 下雪效果
-  if (snowModeOn) {
-    for (let flake of snowflakes) {
-      // 在画布上绘制雪点
-      if (
-        flake.y >= 0 &&
-        flake.y < ASCIICanvas.length &&
-        flake.x >= 0 &&
-        flake.x < ASCIICanvas[0].length
-      ) {
-        ASCIICanvas[Math.floor(flake.y)][Math.floor(flake.x)] = ".";
-      }
-      // 雪点下落
-      flake.y += flake.speed;
-      if (flake.y >= ASCIIHeight) {
-        flake.y = 0;
-        flake.x = Math.floor(Math.random() * ASCIIWidth);
-      }
-    }
-  }
 }
 
 function getTemperature(offset) {
