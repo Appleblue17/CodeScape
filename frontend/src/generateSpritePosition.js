@@ -76,7 +76,7 @@ export default function generateSpritePosition(terrain, sprites, offset) {
   } else if (biomeType === "fungi") {
     coef = map(temp, 0, 30, 0.2, 1, true);
   } else if (biomeType === "ice") {
-    coef = map(temp, 0, -273, 1, 0.2, true);
+    coef = map(temp, 0, -40, 1, 0.2, true);
   }
 
   spriteRollIndex %= spriteRollList[biomeType].length;

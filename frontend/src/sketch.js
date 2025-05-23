@@ -11,7 +11,13 @@
 //import { text } from "body-parser";
 import { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { randomShuffle } from "./util.js";
-import { refreshPages, getTerrain, getSpritePosition } from "./index.js";
+import {
+  refreshPages,
+  getTerrain,
+  getSpritePosition,
+  getTemperature,
+  getBiomeType,
+} from "./index.js";
 import renderScreen from "./renderScreen.js";
 
 import forestSpriteList from "./sprite_list/forest.js";
@@ -21,7 +27,6 @@ import iceSpriteList from "./sprite_list/ice.js";
 import animalSpriteList from "./sprite_list/animal.js";
 
 // Global variables
-export let font; // Font used for rendering ASCII characters
 let ready;
 let socket, socketReady; // WebSocket connection for sending rendered ASCII art
 let socket_img, socket_imgReady; // WebSocket connection for sending rendered images
@@ -29,10 +34,10 @@ let socket_llm, socket_llmReady; // WebSocket connection for sending LLM request
 let speechRec; // Speech recognition object for voice commands
 let chatModeOn = false; // Flag to indicate if chat mode is active
 let genPicModeOn = false; // Flag to indicate if picture generation mode is active
-let direction;
-let snowModeOn = false;
+let direction = "right";
+
+let snowModeOn = true;
 let snowflakes = [];
-const SNOWFLAKE_COUNT = 100; // 雪点数量，可调整
 
 const spriteRollList = {}; // Weighted list for random sprite selection
 export { spriteRollList };
@@ -44,9 +49,9 @@ let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 export { ASCIIWidth, ASCIIHeight, mapWidth, mapHeight, xmin, xmax, ymax };
 
-let cameraX = 100; // Camera position in the X direction
+let cameraX = 0; // Camera position in the X direction
 const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
-const scrollInterval = 200; // Time between scroll updates (milliseconds)
+const scrollInterval = 150; // Time between scroll updates (milliseconds)
 
 /**
  * Preload assets before setup
@@ -55,7 +60,6 @@ const scrollInterval = 200; // Time between scroll updates (milliseconds)
  * - Prepares weighted sprite distribution for random selection
  */
 window.preload = function preload() {
-  font = loadFont("./assets/KodeMono-VariableFont_wght.ttf");
   pixelDensity(1);
   for (let sprite of [
     ...forestSpriteList,
@@ -196,15 +200,16 @@ window.setup = function setup() {
       // Start the continuous animation loop for auto-scrolling
       setInterval(autoScroll, scrollInterval);
     } else {
-      setTimeout(checkAndDrawScene, 100);
+      setTimeout(checkAndDrawScene, 500);
     }
   }
   checkAndDrawScene();
   animationLoop();
-  // for (let i = -20; i <= 20; i++) {
-  //   // console.log(i, getTemperature(i * ASCIIWidth));
-  //   console.log(i, getBiomeType(i * ASCIIWidth));
-  // }
+
+  for (let i = -20; i < 20; i++) {
+    const pos = i * mapWidth;
+    console.log(pos, getTemperature(pos), getBiomeType(pos));
+  }
 };
 
 function gotSpeech() {
@@ -312,23 +317,12 @@ function autoScroll() {
       // 不动
       break;
   }
-  if (cameraX > mapWidth * 30) {
+  if (cameraX > mapWidth * 20 || cameraX < -mapWidth * 20) {
     cameraX *= -1;
     socket.send(
       JSON.stringify({
         type: "output",
-        content:
-          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
-      })
-    );
-  }
-  if (cameraX < -mapWidth * 30) {
-    cameraX *= -1;
-    socket.send(
-      JSON.stringify({
-        type: "output",
-        content:
-          "The Frost claims all. The Kernel's final whisper: /ERROR: WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
+        content: "[ERROR] WORLD SEED CORRUPTED. LOVE REQUIRED TO RECOMPILE.",
       })
     );
   }
@@ -370,7 +364,6 @@ function loadAnimalSprites(keyword) {
 function drawScene() {
   noiseSeed(0);
   randomSeed(0);
-  background(0);
 
   ymax = ceil(ASCIIHeight / 3) + 10;
   xmin = floor((-6 * ymax) / 7) - 1;
@@ -383,34 +376,58 @@ function drawScene() {
   const sprites = getSpritePosition(cameraX);
 
   const ASCIICanvas = renderScreen(terrain, sprites);
+  const ASCIICanvasWithSnow = snowEffect(ASCIICanvas);
 
   if (socket.readyState === WebSocket.OPEN) {
     // Send ASCII art content
     const asciiContent = JSON.stringify({
       type: "ascii",
-      content: ASCIICanvas.map((row) => row.join("")).join("\n"),
+      content: ASCIICanvasWithSnow.map((row) => row.join("")).join("\n"),
     });
     socket.send(asciiContent);
   }
+}
 
-  // 下雪效果
-  if (snowModeOn) {
-    for (let flake of snowflakes) {
-      // 在画布上绘制雪点
-      if (
-        flake.y >= 0 &&
-        flake.y < ASCIICanvas.length &&
-        flake.x >= 0 &&
-        flake.x < ASCIICanvas[0].length
-      ) {
-        ASCIICanvas[Math.floor(flake.y)][Math.floor(flake.x)] = ".";
-      }
-      // 雪点下落
-      flake.y += flake.speed;
-      if (flake.y >= ASCIIHeight) {
-        flake.y = 0;
-        flake.x = Math.floor(Math.random() * ASCIIWidth);
+function snowEffect(ASCIICanvas) {
+  if (!snowModeOn) return ASCIICanvas;
+
+  const temp = getTemperature(cameraX);
+  if (temp > 0) return ASCIICanvas;
+  const snowDensity = map(temp, 0, -40, 0, 0.6);
+  const snowSize = map(temp, 0, -40, 0.5, 1.0);
+
+  // console.log("snowDensity: " + snowDensity);
+  // console.log("snowSize: " + snowSize);
+
+  const snowflakeCount = random() * snowDensity * ASCIIWidth;
+  for (let i = 0; i < snowflakeCount; i++) {
+    let x = Math.floor(Math.random() * ASCIIWidth);
+    let speed = Math.random() * 0.5 + 0.5;
+    snowflakes.push({
+      x: x,
+      y: 0,
+      speed: speed,
+    });
+  }
+
+  const newSnowflakes = [];
+  for (let flake of snowflakes) {
+    const xBegin = Math.floor(flake.x - snowSize),
+      xEnd = Math.floor(flake.x + snowSize),
+      yBegin = Math.floor(flake.y - snowSize),
+      yEnd = Math.floor(flake.y + snowSize);
+    for (let i = xBegin; i <= xEnd; i++) {
+      for (let j = yBegin; j <= yEnd; j++) {
+        if ((i - flake.x) ** 2 + (j - flake.y) ** 2 <= snowSize ** 2) {
+          if (j >= 0 && j < ASCIIHeight && i >= 0 && i < ASCIIWidth) {
+            ASCIICanvas[j][i] = ".";
+          }
+        }
       }
     }
+    flake.y += flake.speed;
+    if (flake.y < ASCIIHeight) newSnowflakes.push(flake);
   }
+  snowflakes = newSnowflakes;
+  return ASCIICanvas;
 }

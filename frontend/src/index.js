@@ -9,9 +9,9 @@ let pageStart = 0,
 
 function getTemperature(offset) {
   const x = offset / ASCIIWidth;
-  const temp = -273.15 + Math.exp((-x * x) / 100) * 300;
+  const temp = -50 + Math.exp((-x * x) / 12) * 75;
   const randomTemp = noise(x) * 10;
-  return Math.max(temp + randomTemp, -273.15);
+  return temp + randomTemp;
 }
 
 function getBiomeType(offset) {
@@ -22,7 +22,7 @@ function getBiomeType(offset) {
     let e = noise(offset / 2 + 20);
     if (e < 0.4) {
       return "mountain";
-    } else if (e < 0.7) {
+    } else if (e < 0.6) {
       return "forest";
     } else {
       return "fungi";
