@@ -173,15 +173,14 @@ def read_prompts_from_csv(csv_file_path):
 if __name__ == "__main__":
     # 创建 WebSocket 服务器
     
-    
+    '''
     server = WebsocketServer(host="0.0.0.0", port=8081)
     server.set_fn_new_client(new_client)
     server.set_fn_message_received(message_received)
     print("WebSocket server is running on ws://0.0.0.0:8081")
     server.run_forever()
-      
+    '''
     
-
     #csv_file_path = 'prompt.xlsx'
     #prompts = read_prompts_from_csv(csv_file_path)
 
@@ -190,14 +189,14 @@ if __name__ == "__main__":
      #   generate_clip(prompt, seed, workflowfile, idx)
       #  idx += 1
     #生成图像并显示
-    '''
+    
     while True:
         prompt = input("请输入提示词：")
         if prompt == "exit":
             print("Exiting...")
             break
         generate_clip(prompt, seed, workflowfile, 1)
-    '''
+    
     
     
     

@@ -233,9 +233,9 @@ function splitLongText(text, charsPerLine) {
   }
   
   // For extremely long text, truncate with ellipsis
-  if (text.length > charsPerLine * 4) {
-    return text.substring(0, charsPerLine * 4) + '...';
-  }
+  //if (text.length > charsPerLine * 4) {
+  //  return text.substring(0, charsPerLine * 4) + '...';
+  //}
   
   // Split at word boundaries when possible
   const words = text.split(' ');
