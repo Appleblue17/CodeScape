@@ -1,7 +1,5 @@
 ![cover](./assets/codescape_cover.png)
 
-![gif](./assets/codescape_gif.gif)
-
 This is a final project for the course *Creative Coding and Interactive Art* at HKUST(GZ) during the Spring semester of 2024-25.
 
 *CodeScape* reveals a 2D ASCII world that scrolls horizontally through diverse biomes—lush forests, mountain peaks, fungal grids, and frozen wastes—each rendered with procedural ASCII characters. An AI guide answers audience questions through a terminal, revealing secrets about the world’s collapse and simulated origins. This is a generative art project that combines the power of AI with the creativity of ASCII art.

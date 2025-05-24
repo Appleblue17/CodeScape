@@ -213,7 +213,7 @@ function drawLoadingScreen() {
     socket_llm && socket_llm.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
 
   textSize(18);
-  text("ASCII Engine: " + socketStatus, width / 2, height / 2 + 40);
+  text("Backend Display: " + socketStatus, width / 2, height / 2 + 40);
   text("Image Generator: " + imgSocketStatus, width / 2, height / 2 + 90);
   text("Language Model: " + llmSocketStatus, width / 2, height / 2 + 120);
 }
