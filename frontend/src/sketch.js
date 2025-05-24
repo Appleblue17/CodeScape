@@ -203,14 +203,17 @@ function drawLoadingScreen() {
   text("CodeScape", width / 2, height / 3);
 
   // Connection status indicators
-  let socketStatus = socket && socket.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
+  let socketStatus =
+    socket && socket.readyState === WebSocket.OPEN
+      ? "Connected \n (Press t to show/hide terminal window.)"
+      : "Connecting...";
   let imgSocketStatus =
     socket_img && socket_img.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
   let llmSocketStatus =
     socket_llm && socket_llm.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
 
   textSize(18);
-  text("ASCII Engine: " + socketStatus, width / 2, height / 2 + 60);
+  text("ASCII Engine: " + socketStatus, width / 2, height / 2 + 40);
   text("Image Generator: " + imgSocketStatus, width / 2, height / 2 + 90);
   text("Language Model: " + llmSocketStatus, width / 2, height / 2 + 120);
 }
