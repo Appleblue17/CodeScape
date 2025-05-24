@@ -39,9 +39,9 @@ let ymax, xmin, xmax; // Coordinate boundaries for the terrain
 let mapWidth, mapHeight; // Dimensions of the terrain map
 export { ASCIIWidth, ASCIIHeight, mapWidth, mapHeight, xmin, xmax, ymax };
 
-let cameraX = 0; // Camera position in the X direction
+let cameraX = 1500; // Camera position in the X direction
 const scrollSpeed = 1; // Speed of automatic scrolling (pixels per update)
-const scrollInterval = 150; // Time between scroll updates (milliseconds)
+const scrollInterval = 100; // Time between scroll updates (milliseconds)
 
 /**
  * Preload assets before setup

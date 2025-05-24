@@ -1,6 +1,6 @@
 import { ASCIIWidth, ASCIIHeight } from "./sketch.js";
 import { getTemperature } from "./index.js";
-const snowflakes = [];
+let snowflakes = [];
 
 export default function snowEffect(ASCIICanvas, offset) {
   const temp = getTemperature(offset);
