@@ -64,7 +64,12 @@ Then click save in the upper left corner of the interface, save the workflow as 
 
 Rename the workflow API in the current directory to `workflow_api.json`.
 
-### 5. Run the Script in the Current Directory
+### 5. Download a suitable model from the official repository
+Note that the official ComfyUI from github repository does not provide the user with availabele models. Therefore, to deploy ComfyUI locally, please find the model which is used in your workflow on Huggingface or other open-source model platforms, and download them mannually. 
+<br>After downloading, please put the models into the corresponding directory in the ComfyUI file. 
+<br>The general path is `./ComfyUI/models`. Note that models need to be placed in specific files under `/models/` for it to be properly called. For instance, if the workflow uses a vae model for text recognition, then the model should be placed in `./ComfyUI/models/vae`.
+
+### 6. Run the Script in the Current Directory
 
 Run the Python script `api.py` in the current folder:
 
