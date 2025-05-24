@@ -127,7 +127,7 @@ window.setup = function setup() {
     console.error("WebSocket connection closed. Reconnecting...");
     setTimeout(() => {
       socket_img = new WebSocket("ws://localhost:8081");
-    }, 1000); // 尝试在 1 秒后重新连接
+    }, 1000); // Try to reconnect after 1 second
   };
 
   socket_img.onerror = function (error) {
@@ -142,7 +142,7 @@ window.setup = function setup() {
     console.error("WebSocket connection closed. Reconnecting...");
     setTimeout(() => {
       socket_llm = new WebSocket("ws://localhost:8082");
-    }, 1000); // 尝试在 1 秒后重新连接
+    }, 1000); // Try to reconnect after 1 second
   };
   socket_llm.onerror = function (error) {
     console.error("WebSocket error for LLM requests:", error);
@@ -227,7 +227,7 @@ function gotSpeech() {
     result = result.replace(/[.,\/#!$%?\^&\*;:{}=\-_`~()]/g, "");
     console.log("result: " + result);
 
-    // 1. 用户输入显示到 terminal
+    // 1. User input displayed to the terminal
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(
         JSON.stringify({
@@ -237,7 +237,7 @@ function gotSpeech() {
       );
     }
 
-    // 2. 窗口移动
+    // 2. Window movement
     if (result == "move left") {
       direction = "left";
       console.log("Moving left");
@@ -254,7 +254,7 @@ function gotSpeech() {
       return;
     }
 
-    // 3. 图片生成模式
+    // 3. Picture generation mode
     if (result == "picture generation mode") {
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
@@ -264,7 +264,7 @@ function gotSpeech() {
       console.log("Picture Generation Mode Off");
       return;
     }
-    // 4. 聊天模式
+    // 4. Chat mode
     else if (result == "chat mode") {
       // if the recieved information asks to chat:
       console.log("Chat Mode On");
@@ -279,7 +279,7 @@ function gotSpeech() {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
     }
 
-    // 传递语音识别结果给后端服务器
+    // Pass speech recognition results to backend server
     if (chatModeOn && genPicModeOn == false) {
       // if the chat mode is on, send the recognized text to the backend server
       if (socket_llm.readyState === WebSocket.OPEN) {
@@ -315,7 +315,6 @@ function autoScroll() {
       break;
     case "stop":
     default:
-      // 不动
       break;
   }
   if (cameraX > mapWidth * 20 || cameraX < -mapWidth * 20) {

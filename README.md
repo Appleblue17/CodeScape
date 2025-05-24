@@ -1,6 +1,7 @@
 ## How to Run
 
 ### Environment setup
+
 - Install node.js, python3.
 - Install js dependencies.
 ```bash
@@ -11,6 +12,7 @@ npm install
 ```
 
 ### Run the server
+
 - Start the backend server.
 
 ```bash
@@ -19,6 +21,7 @@ npm run start
 ```
 
 ### Run the client
+
 - Install Live Server extension in VSCode.
 - Right click on `frontend/index.html` and select `Open with Live Server` to open the webpage in the browser.
 - You should see the display in the server console.
@@ -54,6 +57,7 @@ python main.py
 ### 4. Obtain the Workflow API
 
 Drag the original workflow `simple-text-2-image-DreamShaper.json` into the ComfyUI interface.
+
 ![ComfyUI Interface Screenshot](./pregen//instruction_pic/UI.png)
 
 Click the gear icon in the lower left corner of the page, and enable developer mode in the settings to run the workflow and download it as an API.
