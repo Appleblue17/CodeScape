@@ -424,6 +424,9 @@ function snowEffect(ASCIICanvas) {
         }
       }
     }
+    flake.x += random() * 2 - 1.5;
+    if (flake.x < 0) flake.x = ASCIIWidth - 1;
+    if (flake.x >= ASCIIWidth) flake.x = 0;
     flake.y += flake.speed;
     if (flake.y < ASCIIHeight) newSnowflakes.push(flake);
   }

@@ -11,6 +11,7 @@ const wss = new WebSocket.Server({ server });
 let displayContent = '';
 let terminalContent = [];
 let currentInput = '';
+let terminalVisible = true; // Add this variable to track terminal visibility
 
 // Create a blessed screen
 const screen = blessed.screen({
@@ -91,6 +92,24 @@ screen.key(['escape', 'q', 'C-c'], function() {
   return process.exit(0);
 });
 
+// Add keyboard shortcut to toggle terminal visibility
+screen.key(['t'], function() {
+  toggleTerminal();
+});
+
+// Function to toggle terminal visibility
+function toggleTerminal() {
+  terminalVisible = !terminalVisible;
+  
+  if (terminalVisible) {
+    terminalBox.show();
+  } else {
+    terminalBox.hide();
+  }
+  
+  screen.render();
+}
+
 wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(message) {
     try {
@@ -163,7 +182,7 @@ function textToAsciiArt(text, color) {
   } catch (e) {
     console.error('Figlet error:', e);
     // Fallback to plain text if figlet fails
-    return `{${color}-fg}${text}{/${color}-fg}`;
+    return `{${color}-fg}${text}{/${color}-fg`;
   }
 }
 
@@ -178,8 +197,10 @@ function displayAsciiArt() {
   // Set the cursor position to avoid any auto-spacing
   box.position.autoPadding = false;
   
-  // Make sure terminal is on top
-  terminalBox.setFront();
+  // Make sure terminal is on top if visible
+  if (terminalVisible) {
+    terminalBox.setFront();
+  }
   
   // Render the screen
   screen.render();
@@ -187,6 +208,9 @@ function displayAsciiArt() {
 
 // Function to update terminal display with figlet ASCII art
 function updateTerminal() {
+  // Skip update if terminal is not visible
+  if (!terminalVisible) return;
+  
   let content = '';
   
   // Get all interactions to display in terminal (or limit to last several entries)
