@@ -10,33 +10,24 @@
 
 import { generateSpriteEdge, generateSpriteFilling } from "./sprite.js";
 import { randomShuffle } from "./util.js";
-import {
-  refreshPages,
-  getTerrain,
-  getSpritePosition,
-  getTemperature,
-  getBiomeType,
-} from "./index.js";
+import { refreshPages, getTerrain, getSpritePosition } from "./index.js";
+import snowEffect from "./snowEffect.js";
 import renderScreen from "./renderScreen.js";
 
 import forestSpriteList from "./sprite_list/forest.js";
 import fungiSpriteList from "./sprite_list/fungi.js";
 import mountainSpriteList from "./sprite_list/mountain.js";
 import iceSpriteList from "./sprite_list/ice.js";
-import animalSpriteList from "./sprite_list/animal.js";
 
 // Global variables
-let ready;
-let socket, socketReady; // WebSocket connection for sending rendered ASCII art
-let socket_img, socket_imgReady; // WebSocket connection for sending rendered images
-let socket_llm, socket_llmReady; // WebSocket connection for sending LLM requests
+let socket,
+  socketReady = false; // WebSocket connection for sending rendered ASCII art
+let socket_img; // WebSocket connection for sending rendered images
+let socket_llm; // WebSocket connection for sending LLM requests
 let speechRec; // Speech recognition object for voice commands
 let chatModeOn = false; // Flag to indicate if chat mode is active
 let genPicModeOn = false; // Flag to indicate if picture generation mode is active
 let direction = "right";
-
-let snowModeOn = true;
-let snowflakes = [];
 
 const spriteRollList = {}; // Weighted list for random sprite selection
 export { spriteRollList };
@@ -120,7 +111,7 @@ window.setup = function setup() {
   socket_img = new WebSocket("ws://localhost:8081");
   socket_llm = new WebSocket("ws://localhost:8082");
 
-  createCanvas(ASCIIWidth * 8, ASCIIHeight * 16);
+  createCanvas(600, 400);
 
   socket.onopen = function () {
     console.log("WebSocket 8080 (backend) is open now.");
@@ -136,7 +127,7 @@ window.setup = function setup() {
     console.error("WebSocket connection closed. Reconnecting...");
     setTimeout(() => {
       socket_img = new WebSocket("ws://localhost:8081");
-    }, 1000); // 尝试在 1 秒后重新连接
+    }, 1000); // Try to reconnect after 1 second
   };
 
   socket_img.onerror = function (error) {
@@ -146,13 +137,12 @@ window.setup = function setup() {
   // Initialize the WebSocket connection for LLM processing
   socket_llm.onopen = function () {
     console.log("WebSocket 8082 (LLM processing) is open now.");
-    socket_llmReady = true;
   };
   socket_llm.onclose = function () {
     console.error("WebSocket connection closed. Reconnecting...");
     setTimeout(() => {
       socket_llm = new WebSocket("ws://localhost:8082");
-    }, 1000); // 尝试在 1 秒后重新连接
+    }, 1000); // Try to reconnect after 1 second
   };
   socket_llm.onerror = function (error) {
     console.error("WebSocket error for LLM requests:", error);
@@ -173,8 +163,8 @@ window.setup = function setup() {
   };
 
   noiseSeed(0);
+
   // check for the loading of the p5.SpeechRec library
-  console.log(typeof p5.SpeechRec);
   if (typeof p5.SpeechRec === "undefined") {
     console.error("p5.SpeechRec is not defined. Please check your p5.js library version.");
     return;
@@ -187,32 +177,48 @@ window.setup = function setup() {
   // start listening for speech input
   speechRec.start();
 
-  // show the user to speak
-  console.log("Say something!");
-
   function checkAndDrawScene() {
-    // if (socketReady && socket_imgReady && socket_llmReady) {
     if (socketReady) {
-      ready = true;
-      console.log("All WebSocket connections are open.");
+      console.log("Initialization done.");
       drawScene();
       // Start the continuous animation loop for auto-scrolling
       setInterval(autoScroll, scrollInterval);
     } else {
       setTimeout(checkAndDrawScene, 500);
     }
+    drawLoadingScreen();
   }
   checkAndDrawScene();
-  animationLoop();
-
-  // for (let i = -20; i < 20; i++) {
-  //   const pos = i * mapWidth;
-  //   console.log(pos, getTemperature(pos), getBiomeType(pos));
-  // }
 };
 
+/**
+ * Displays a simple loading screen while waiting for WebSocket connections
+ */
+function drawLoadingScreen() {
+  background(0);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  fill(255);
+
+  text("CodeScape", width / 2, height / 3);
+
+  // Connection status indicators
+  let socketStatus =
+    socket && socket.readyState === WebSocket.OPEN
+      ? "Connected \n (Press t to show/hide terminal window.)"
+      : "Connecting...";
+  let imgSocketStatus =
+    socket_img && socket_img.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
+  let llmSocketStatus =
+    socket_llm && socket_llm.readyState === WebSocket.OPEN ? "Connected" : "Connecting...";
+
+  textSize(18);
+  text("Backend Display: " + socketStatus, width / 2, height / 2 + 40);
+  text("Image Generator: " + imgSocketStatus, width / 2, height / 2 + 90);
+  text("Language Model: " + llmSocketStatus, width / 2, height / 2 + 120);
+}
+
 function gotSpeech() {
-  //if (!ready) return;
   console.log("gotSpeech called");
   if (speechRec.resultValue) {
     // output the recognized text to the console
@@ -224,7 +230,7 @@ function gotSpeech() {
     result = result.replace(/[.,\/#!$%?\^&\*;:{}=\-_`~()]/g, "");
     console.log("result: " + result);
 
-    // 1. 用户输入显示到 terminal
+    // 1. User input displayed to the terminal
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(
         JSON.stringify({
@@ -234,7 +240,7 @@ function gotSpeech() {
       );
     }
 
-    // 2. 窗口移动
+    // 2. Window movement
     if (result == "move left") {
       direction = "left";
       console.log("Moving left");
@@ -251,7 +257,7 @@ function gotSpeech() {
       return;
     }
 
-    // 3. 图片生成模式
+    // 3. Picture generation mode
     if (result == "picture generation mode") {
       genPicModeOn = true;
       console.log("Picture Generation Mode On");
@@ -261,7 +267,7 @@ function gotSpeech() {
       console.log("Picture Generation Mode Off");
       return;
     }
-    // 4. 聊天模式
+    // 4. Chat mode
     else if (result == "chat mode") {
       // if the recieved information asks to chat:
       console.log("Chat Mode On");
@@ -276,7 +282,7 @@ function gotSpeech() {
       console.error("WebSocket is not open. Cannot send speech recognition result.");
     }
 
-    // 传递语音识别结果给后端服务器
+    // Pass speech recognition results to backend server
     if (chatModeOn && genPicModeOn == false) {
       // if the chat mode is on, send the recognized text to the backend server
       if (socket_llm.readyState === WebSocket.OPEN) {
@@ -303,7 +309,6 @@ function gotSpeech() {
  * and redraws the scene
  */
 function autoScroll() {
-  //if (!ready) return;
   switch (direction) {
     case "left":
       cameraX -= scrollSpeed;
@@ -313,7 +318,6 @@ function autoScroll() {
       break;
     case "stop":
     default:
-      // 不动
       break;
   }
   if (cameraX > mapWidth * 20 || cameraX < -mapWidth * 20) {
@@ -326,35 +330,6 @@ function autoScroll() {
     );
   }
   drawScene();
-}
-
-// 持续刷新
-function animationLoop() {
-  drawScene();
-  requestAnimationFrame(animationLoop);
-}
-
-// 动态加载动物素材的函数
-function loadAnimalSprites(keyword) {
-  // keyword: 例如 "squirrel" 或 "frog"
-  const lowerKeyword = keyword.toLowerCase();
-  for (let sprite of animalSpriteList) {
-    if (sprite.name.toLowerCase().includes(lowerKeyword) && !sprite.loadedImg) {
-      sprite.loadedImg = loadImage(
-        sprite.img,
-        (img) => {
-          console.log("Animal loaded: " + sprite.name);
-          img.filter(GRAY);
-          img.filter(INVERT);
-          sprite.edgeImg = generateSpriteEdge(img, sprite.width, sprite.height);
-          sprite.fillImg = generateSpriteFilling(img, sprite.width, sprite.height);
-        },
-        () => {
-          console.log("Error loading animal: " + sprite.name);
-        }
-      );
-    }
-  }
 }
 
 /**
@@ -375,7 +350,7 @@ function drawScene() {
   const sprites = getSpritePosition(cameraX);
 
   const ASCIICanvas = renderScreen(terrain, sprites);
-  const ASCIICanvasWithSnow = snowEffect(ASCIICanvas);
+  const ASCIICanvasWithSnow = snowEffect(ASCIICanvas, cameraX);
 
   if (socket.readyState === WebSocket.OPEN) {
     // Send ASCII art content
@@ -385,48 +360,4 @@ function drawScene() {
     });
     socket.send(asciiContent);
   }
-}
-
-function snowEffect(ASCIICanvas) {
-  if (!snowModeOn) return ASCIICanvas;
-
-  const temp = getTemperature(cameraX);
-  if (temp > 0) return ASCIICanvas;
-  const snowDensity = map(temp, 0, -40, 0, 0.6);
-  const snowSize = map(temp, 0, -40, 0.5, 1.0);
-
-  // console.log("snowDensity: " + snowDensity);
-  // console.log("snowSize: " + snowSize);
-
-  const snowflakeCount = random() * snowDensity * ASCIIWidth;
-  for (let i = 0; i < snowflakeCount; i++) {
-    let x = Math.floor(Math.random() * ASCIIWidth);
-    let speed = Math.random() * 0.5 + 0.5;
-    snowflakes.push({
-      x: x,
-      y: 0,
-      speed: speed,
-    });
-  }
-
-  const newSnowflakes = [];
-  for (let flake of snowflakes) {
-    const xBegin = Math.floor(flake.x - snowSize),
-      xEnd = Math.floor(flake.x + snowSize),
-      yBegin = Math.floor(flake.y - snowSize),
-      yEnd = Math.floor(flake.y + snowSize);
-    for (let i = xBegin; i <= xEnd; i++) {
-      for (let j = yBegin; j <= yEnd; j++) {
-        if ((i - flake.x) ** 2 + (j - flake.y) ** 2 <= snowSize ** 2) {
-          if (j >= 0 && j < ASCIIHeight && i >= 0 && i < ASCIIWidth) {
-            ASCIICanvas[j][i] = ".";
-          }
-        }
-      }
-    }
-    flake.y += flake.speed;
-    if (flake.y < ASCIIHeight) newSnowflakes.push(flake);
-  }
-  snowflakes = newSnowflakes;
-  return ASCIICanvas;
 }
